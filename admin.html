@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة تحكم الإدارة — BSC</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <!-- Ethers.js v6 — BSC / EVM -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+
+  <script src="firebase-config.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 24px; background: #f4f7f6; margin: 0; direction: rtl;
+    }
+
+    /* ── Top bar ── */
+    .admin-topbar {
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap; margin-bottom: 24px;
+      background: #fff; border-radius: 14px;
+      padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .admin-topbar h1 { font-size: 18px; font-weight: 800; color: #0b0f19; margin: 0; flex: 1; }
+    #adminNetLabel {
+      font-size: 12px; font-weight: 700;
+      padding: 4px 12px; border-radius: 8px;
+      background: #f0f9ff; color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+    #adminStatus {
+      font-size: 12px; font-weight: 600; color: #888;
+      flex: 1; text-align: left; min-width: 160px;
+    }
+    .btn-connect-admin {
+      padding: 8px 16px; background: #f0b90b; color: #0b0f19;
+      border: none; border-radius: 10px; font-weight: 800;
+      font-size: 13px; cursor: pointer;
+    }
+    .btn-connect-admin:hover { opacity: 0.85; }
+
+    /* ── Section headers ── */
+    h2 {
+      color: #1e293b; border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px; margin-top: 36px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 16px;
+    }
+    h2.section-release   { border-bottom-color: #f59e0b; }
+    h2.section-completed { border-bottom-color: #22c55e; }
+
+    .count-badge {
+      background: #3b82f6; color: #fff;
+      font-size: 12px; padding: 2px 9px;
+      border-radius: 10px; font-weight: 700;
+    }
+    h2.section-release   .count-badge { background: #f59e0b; color: #78350f; }
+    h2.section-completed .count-badge { background: #22c55e; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.07); }
+    th, td { border-bottom: 1px solid #f1f5f9; padding: 12px 14px; text-align: center; font-size: 13px; }
+    th { background: #f8fafc; color: #475569; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* ── Buttons ── */
+    button { cursor: pointer; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; transition: opacity 0.15s; }
+    button:hover:not(:disabled) { opacity: 0.82; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-withdraw { background: #22c55e; color: #fff; padding: 8px 14px; }
+    .btn-release  { background: #f59e0b; color: #78350f; padding: 8px 14px; }
+    .btn-view     { background: #0ea5e9; color: #fff; padding: 6px 12px; font-size: 12px; }
+
+    /* ── Misc ── */
+    .addr-cell { font-family: monospace; font-size: 11px; color: #64748b; }
+    .empty-row td { color: #94a3b8; font-style: italic; padding: 24px; }
+    .tag { display: inline-block; padding: 3px 9px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+    .tag-auto  { background: #dcfce7; color: #15803d; }
+    .tag-admin { background: #fef9c3; color: #854d0e; }
+    .tag-chain { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    /* ── Release info banner ── */
+    .release-note {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; color: #1e40af;
+      margin-bottom: 16px;
+    }
+
+    /* ── Proof Modal ── */
+    #proofModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88); z-index: 9999;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #proofModal.show { display: flex; }
+    #proofModal img { max-width: 95%; max-height: 90vh; border-radius: 10px; }
+    #proofModal .close-btn {
+      position: absolute; top: 18px; left: 18px;
+      background: #fff; border: none; padding: 10px 18px;
+      border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 15px;
+    }
+
+    /* ══ Admin Release Overlay ══════════════════════════════════════════════
+       يظهر للأدمن أثناء انتظار توقيع المحفظة وتأكيد البلوكشين.
+       المشتري يرى نسخته الخاصة في order-details.js (processing-box).
+    ═══════════════════════════════════════════════════════════════════════ */
+    #adminReleaseOverlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 8888;
+      background: rgba(11, 15, 25, 0.82);
+      backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 20px;
+      padding: 30px;
+    }
+    .admin-overlay-card {
+      background: #fff; border-radius: 22px;
+      padding: 36px 32px; max-width: 420px; width: 100%;
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .admin-overlay-spinner {
+      width: 56px; height: 56px;
+      border: 5px solid #EAECEF;
+      border-top-color: #f0b90b;
+      border-radius: 50%;
+      animation: adminSpin 0.85s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes adminSpin { to { transform: rotate(360deg); } }
+    #adminOverlayMsg {
+      font-size: 18px; font-weight: 800; color: #1E2329; margin-bottom: 8px;
+    }
+    #adminOverlaySub {
+      font-size: 13px; color: #848E9C; line-height: 1.6; margin-bottom: 14px;
+    }
+    #adminOverlayTxLink {
+      display: none;
+      font-size: 12px; color: #3b82f6; font-family: monospace;
+      word-break: break-all; text-decoration: none;
+      background: #eff6ff; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid #bfdbfe;
+    }
+    #adminOverlayTxLink:hover { text-decoration: underline; }
+    .admin-overlay-warning {
+      font-size: 12px; color: #f59e0b; margin-top: 16px; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ Admin Release Overlay (يظهر أثناء التحرير) ══ -->
+  <div id="adminReleaseOverlay">
+    <div class="admin-overlay-card">
+      <div class="admin-overlay-spinner"></div>
+      <div id="adminOverlayMsg">⏳ في انتظار توقيع المحفظة...</div>
+      <div id="adminOverlaySub">يرجى فتح MetaMask والموافقة على المعاملة.</div>
+      <a id="adminOverlayTxLink" href="#" target="_blank">—</a>
+      <div class="admin-overlay-warning">⚠️ لا تغلق هذه الصفحة حتى تكتمل العملية</div>
+    </div>
+  </div>
+
+  <!-- ── Top Bar ── -->
+  <div class="admin-topbar">
+    <h1>⚙️ لوحة تحكم الإدارة</h1>
+    <span id="adminNetLabel">🔌 غير متصل</span>
+    <span id="adminStatus">في انتظار الاتصال بالمحفظة…</span>
+    <button class="btn-connect-admin" onclick="initAdminWallet()">🔗 ربط المحفظة</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       1. سحب الأرباح — USDT On-chain
+  ══════════════════════════════════════════════════════════ -->
+  <h2>
+    💰 طلبات السحب المعلقة
+    <span class="count-badge" id="withdrawCount">0</span>
+  </h2>
+  <table id="withdrawTable">
+    <thead>
+      <tr>
+        <th>عنوان المحفظة</th>
+        <th>المبلغ</th>
+        <th>التاريخ</th>
+        <th>الإجراء</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════════════
+       2. تحرير طلبات البيع — On-Chain BSC (Two-Phase)
+  ══════════════════════════════════════════════════════════ -->
+  <h2 class="section-release">
+    🔓 طلبات تحرير يدوي
+    <span class="count-badge" id="releaseCount">0</span>
+  </h2>
+
+  <div class="release-note">
+    🔗 زر "<strong>💸 تحرير العملات</strong>" يفتح المحفظة ويُرسل USDT حقيقياً على <strong>BSC</strong> مباشرةً إلى المشتري.
+    المشتري يرى شاشة التحميل فور بث الـ tx، وعلامة ✅ فور تأكيد البلوكشين — <strong>في اللحظة ذاتها</strong>.
+  </div>
+
+  <table id="releaseTable">
+    <thead>
+      <tr>
+        <th>رقم الطلب</th>
+        <th>المشتري</th>
+        <th>البائع</th>
+        <th>الكمية</th>
+        <th>الإجراء</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════════════
+       3. الطلبات المكتملة — Audit
+  ══════════════════════════════════════════════════════════ -->
+  <h2 class="section-completed">
+    ✅ الطلبات المنفّذة
+    <span class="count-badge" id="completedCount">0</span>
+  </h2>
+  <table id="completedTable">
+    <thead>
+      <tr>
+        <th>رقم الطلب</th>
+        <th>البائع</th>
+        <th>المشتري</th>
+        <th>الكمية</th>
+        <th>المبلغ</th>
+        <th>طريقة الدفع</th>
+        <th>تاريخ التنفيذ</th>
+        <th>طريقة التحرير</th>
+        <th>Hash المعاملة</th>
+        <th>الإثبات</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Proof Modal -->
+  <div id="proofModal" onclick="closeProofModal()">
+    <button class="close-btn" onclick="closeProofModal()">إغلاق ✕</button>
+    <img id="proofModalImg" src="" alt="Payment Proof" />
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

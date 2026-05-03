@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>P2P Trading Platform</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- Ethers.js v6 — BSC / EVM -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  </head>
+
+  <body>
+    <div class="app">
+      <header class="topbar topbar--unified">
+        <div class="brand">P2P</div>
+
+        <button id="connectBtn" class="chip chip--mini chip--danger" type="button" onclick="connectWallet()">
+          <i class="fa-solid fa-link-slash"></i>
+          <span>BSC</span>
+        </button>
+
+        <span id="headerBalanceArrow" class="balanceSwap balanceSwap--long" aria-hidden="true">
+          <i class="fa-solid fa-arrows-left-right"></i>
+        </span>
+
+        <div id="headerInstantOnchain" class="balanceChip balanceChip--mini" role="button" tabindex="0"
+             onclick="connectWallet()"
+             onkeypress="if(event.key==='Enter'){connectWallet()}"
+             aria-label="رصيد الفوري على السلسلة">
+          <span id="headerInstantOnchainText">الفوري: 0.00</span>
+        </div>
+
+        <div id="headerBalance" class="balanceDual" style="display:none" aria-label="الرصيد">
+          <div id="headerBalanceFunding" class="balanceChip balanceChip--mini" role="button" tabindex="0"
+               onclick="connectWallet()" onkeypress="if(event.key==='Enter'){connectWallet()}"
+               aria-label="رصيد التمويل">
+            <span id="headerBalanceText">التمويل: 0.00 USDT</span>
+          </div>
+        </div>
+
+        <button id="headerPlusBtn" class="icon-btn" type="button" onclick="openCreateAd()" style="display:none" aria-label="إنشاء إعلان">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </header>
+
+      <!-- ============ Market Page ============ -->
+      <main id="marketPage" class="page page--active">
+        <div class="marketTopRow">
+          <div id="marketToggle" class="marketToggle marketToggle--sell" role="tablist" aria-label="Buy Sell Toggle">
+            <div class="marketToggle__thumb" aria-hidden="true"></div>
+            <button id="tabBuy" class="marketToggle__btn" type="button" onclick="setMarketTab('buy')" role="tab" aria-selected="false">
+              شراء
+            </button>
+            <button id="tabSell" class="marketToggle__btn marketToggle__btn--active" type="button" onclick="setMarketTab('sell')" role="tab" aria-selected="true">
+              بيع
+            </button>
+          </div>
+          <button id="filterEgp" class="egpPill" type="button">
+            <i class="fa-solid fa-chevron-down"></i>
+            <span class="egpPill__label">EGP</span>
+          </button>
+        </div>
+
+        <div class="filtersRow" aria-label="P2P filters">
+          <div class="filtersRow__group">
+            <button id="filterUsdt" class="filterPill filterPill--usdt" type="button">
+              <span class="filterPill__icon" aria-hidden="true"></span>
+              <span class="filterPill__label">USDT</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <button id="filterAmount" class="filterPill" type="button">
+              <i class="fa-solid fa-chevron-down"></i>
+              <span class="filterPill__label">المبلغ</span>
+            </button>
+            <button id="filterPayment" class="filterPill" type="button">
+              <i class="fa-solid fa-chevron-down"></i>
+              <span class="filterPill__label">طرق الدفع</span>
+            </button>
+          </div>
+          <button id="filterFunnel" class="filterIcon" type="button" aria-label="فلترة">
+            <i class="fa-solid fa-filter"></i>
+          </button>
+        </div>
+
+        <section id="adsList" class="list"></section>
+      </main>
+
+      <!-- ============ Create Ad Page ============ -->
+      <main id="createAdPage" class="page">
+        <div class="subheader">
+          <button class="icon-btn" type="button" onclick="backToMarket()">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+          <div class="subheader__title">نشر إعلان جديد</div>
+        </div>
+
+        <div class="createWrap">
+          <div class="segmented">
+            <button id="createModeBuy" class="segmented__btn segmented__btn--active" type="button" onclick="setCreateMode('buy')">شراء</button>
+            <button id="createModeSell" class="segmented__btn" type="button" onclick="setCreateMode('sell')">بيع</button>
+          </div>
+
+          <section class="card">
+            <div class="card__title">السعر</div>
+            <div class="field">
+              <label class="label">السعر الإفرادي</label>
+              <div class="input">
+                <input id="priceIn" type="number" inputmode="decimal" placeholder="0.00" />
+                <span class="suffix">EGP</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="divider"></div>
+
+          <section class="card">
+            <div class="card__title">الكمية</div>
+            <div class="field">
+              <label class="label">الكمية (USDT)</label>
+              <div class="input input--muted">
+                <input id="adAmount" type="number" inputmode="decimal" placeholder="0.00" />
+                <div class="inputActions">
+                  <span class="suffix">USDT</span>
+                  <button id="maxBtn" class="maxBtn maxBtn--inInput" type="button" onclick="window.P2P.setMaxAmount()">الحد الأقصى</button>
+                </div>
+              </div>
+              <div id="sellOnlyBox" class="sellOnly" style="display: block">
+                <div class="subtext">المتاح: <span id="walletBalance">0.00</span> USDT</div>
+              </div>
+            </div>
+          </section>
+
+          <div class="divider"></div>
+
+          <section class="card">
+            <div class="card__title">حد المعاملة الواحدة</div>
+            <div class="limits">
+              <div class="input">
+                <input id="minLimitIn" type="number" inputmode="decimal" placeholder="الحد الأدنى (EGP)" />
+              </div>
+              <span class="tilde">~</span>
+              <div class="input">
+                <input id="maxLimitIn" type="number" inputmode="decimal" placeholder="الحد الأقصى (EGP)" />
+              </div>
+            </div>
+          </section>
+
+          <div class="divider"></div>
+
+          <section class="card">
+            <div class="card__title">طرق الدفع</div>
+            <div class="field">
+              <label class="label">طريقة الدفع</label>
+              <div class="select" role="button" tabindex="0" onclick="togglePaymentDropdown()" onkeypress="if(event.key==='Enter'){togglePaymentDropdown()}">
+                <span id="selectedPaymentText" class="select__text">اختر طريقة الدفع</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+              <div id="paymentDropdown" class="dropdown pm-dropdown" style="display:none"></div>
+            </div>
+          </section>
+
+          <div class="totalBar">
+            <div class="totalBar__label">المبلغ الإجمالي</div>
+            <div class="totalBar__value"><span id="totalAmount">0.00</span> EGP</div>
+          </div>
+
+          <button id="publishBtn" class="primaryBtn" type="button" disabled onclick="publishAd()">نشر إعلان</button>
+        </div>
+      </main>
+
+      <!-- ============ Orders Page ============ -->
+      <main id="ordersPage" class="page">
+        <div class="tabs tabs--small">
+          <button id="ordersTabActive"    class="tab tab--active" type="button" onclick="setOrdersTab('active')">قيد التنفيذ</button>
+          <button id="ordersTabCompleted" class="tab"             type="button" onclick="setOrdersTab('completed')">مكتمل</button>
+          <button id="ordersTabCanceled"  class="tab"             type="button" onclick="setOrdersTab('canceled')">ملغي</button>
+        </div>
+        <section id="ordersList" class="list"></section>
+      </main>
+
+      <!-- ============ My Ads Page ============ -->
+      <main id="adsPage" class="page">
+        <div class="pageTitle">إعلاناتي</div>
+        <div class="tabs tabs--small">
+          <button id="myAdsTabActive" class="tab tab--active" type="button" onclick="navTo('ads')">نشط (<span id="myAdsActiveCount">0</span>)</button>
+        </div>
+        <section id="myAdsEmpty" class="emptyState" style="display:none">
+          <div class="emptyState__icon" aria-hidden="true">
+            <svg class="emptySvg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" fill="none">
+              <rect x="18" y="26" width="84" height="68" rx="14" stroke="currentColor" stroke-width="4"/>
+              <path d="M34 54h52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              <path d="M34 68h36" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="42" cy="44" r="4" fill="currentColor"/>
+              <circle cx="54" cy="44" r="4" fill="currentColor"/>
+              <circle cx="66" cy="44" r="4" fill="currentColor"/>
+              <path d="M76 90h16" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="emptyState__title">لم يتم العثور على إعلانات</div>
+          <div class="emptyState__sub">أنشئ إعلانًا لشراء العملات الرقمية أو بيعها.</div>
+          <button class="grayBtn" type="button" onclick="showCreateAdForm()">إنشاء إعلان</button>
+        </section>
+        <section id="myAdsList" class="list"></section>
+      </main>
+
+      <!-- ============ Chat Page ============ -->
+      <main id="chatPage" class="page">
+        <div id="chatListWrap">
+          <div class="pageTitle">الدردشة</div>
+          <section id="chatList" class="list"></section>
+        </div>
+        <div id="chatConvWrap" class="chatConv" style="display:none;">
+          <header class="chatConv__header">
+            <button class="chatConv__iconBtn chatConv__back" type="button" onclick="closeChatConversation()" aria-label="رجوع">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <div class="chatConv__identity">
+              <img class="chatConv__avatar" src="https://i.postimg.cc/ydqK72kc/Screenshot-20260426-225514-Gallery.jpg" alt="avatar"/>
+              <div class="chatConv__identityText">
+                <div id="chatConvName" class="chatConv__name">—</div>
+                <div class="chatConv__statusLine">
+                  <span id="chatConvLastSeen" class="chatConv__lastSeen">آخر ظهور منذ 1 دقيقة مضت</span>
+                  <span class="chatConv__bullet">•</span>
+                </div>
+              </div>
+            </div>
+            <button class="chatConv__iconBtn chatConv__menu" type="button" onclick="openChatMenu()" aria-label="القائمة">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </header>
+          <div class="chatActionBar">
+            <div class="chatActionBar__info">
+              <div id="chatActionTitle" class="chatActionBar__title">—</div>
+              <div id="chatActionTimerRow" class="chatActionBar__timerRow">
+                <span class="chatActionBar__timerLabel">الدفع خلال:</span>
+                <span id="chatActionTimer" class="chatActionBar__timerVal">00:00</span>
+              </div>
+            </div>
+            <button id="chatActionBtn" class="chatActionBtn" type="button" onclick="onChatActionClick()">—</button>
+          </div>
+          <div id="chatConvBody" class="chatConv__body"></div>
+          <footer class="chatConv__footer">
+            <button class="chatConv__plus" type="button" onclick="openChatAttach()" aria-label="إرفاق">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+            <div class="chatConv__inputWrap">
+              <input id="chatInputText" class="chatConv__input" type="text" placeholder="أدخل الرسالة"
+                     onkeydown="if(event.key==='Enter'){sendChatMessage()}" />
+            </div>
+            <input id="chatHiddenFile" type="file" accept="image/*" style="display:none;" onchange="onChatFileSelected(event)"/>
+            <button id="chatSendBtn" class="chatConv__send" type="button" onclick="sendChatMessage()" aria-label="إرسال">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </footer>
+        </div>
+      </main>
+
+      <!-- ============ Profile Page ============ -->
+      <main id="profilePage" class="page">
+
+        <div class="prof__topRow">
+          <div class="pageTitle">صفحتي</div>
+        </div>
+
+        <div class="prof__identityCard">
+          <div class="prof__avatarWrap">
+            <img id="profileAvatarImg" class="prof__avatar"
+                 src="https://i.postimg.cc/9Fnn7hsG/Screenshot-20260501-114556-Gallery.jpg"
+                 alt="Wallet Avatar" />
+          </div>
+          <div class="prof__identityInfo">
+            <div id="profileAddress" class="prof__addr">— اربط المحفظة</div>
+            <div class="prof__network">
+              <span class="prof__networkDot"></span>
+              <span>BNB Smart Chain</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prof__statsRow">
+          <div class="prof__statBox">
+            <div id="profileStatsOrders" class="prof__statVal">—</div>
+            <div class="prof__statLabel">إجمالي الطلبات</div>
+          </div>
+          <div class="prof__statDivider"></div>
+          <div class="prof__statBox">
+            <div id="profileStatsRate" class="prof__statVal prof__statVal--green">—</div>
+            <div class="prof__statLabel">نسبة الإتمام</div>
+          </div>
+        </div>
+
+        <div class="prof__balanceCard">
+          <div class="prof__balanceLabel">رصيد التمويل</div>
+          <div id="profileFundingBalance" class="prof__balanceVal">0.00 USDT</div>
+          <div class="prof__balanceBtns">
+            <button class="prof__actionBtn prof__actionBtn--deposit" type="button"
+                    onclick="window.P2P && window.P2P.depositUSDT && window.P2P.depositUSDT()">
+              <i class="fa-solid fa-arrow-down-to-bracket"></i>
+              <span>تحويل</span>
+            </button>
+            <button id="withdrawBtn" class="prof__actionBtn prof__actionBtn--withdraw" type="button"
+                    onclick="window.P2P && window.P2P.withdrawUSDT && window.P2P.withdrawUSDT()">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i>
+              <span>سحب</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="prof__menuList">
+          <button class="prof__menuItem" type="button" onclick="openPaymentMethodsPage()">
+            <div class="prof__menuItemLeft">
+              <div class="prof__menuIconWrap prof__menuIconWrap--blue">
+                <i class="fa-solid fa-credit-card"></i>
+              </div>
+              <span class="prof__menuLabel">طرق الدفع</span>
+            </div>
+            <i class="fa-solid fa-chevron-left prof__menuArrow"></i>
+          </button>
+
+          <button class="prof__menuItem" type="button" onclick="openSupportSheet()">
+            <div class="prof__menuItemLeft">
+              <div class="prof__menuIconWrap prof__menuIconWrap--green">
+                <i class="fa-solid fa-headset"></i>
+              </div>
+              <span class="prof__menuLabel">الدعم الفني</span>
+            </div>
+            <i class="fa-solid fa-chevron-left prof__menuArrow"></i>
+          </button>
+        </div>
+
+      </main>
+
+      <!-- ============ Payment Methods Page ============ -->
+      <main id="paymentMethodsPage" class="page">
+        <div class="subheader">
+          <button class="icon-btn" type="button" onclick="closePaymentMethodsPage()" aria-label="رجوع">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+          <div class="subheader__title">طرق الدفع</div>
+          <div style="width:40px"></div>
+        </div>
+        <section id="pmList" class="pmList"></section>
+        <div class="pmAddBtnWrap">
+          <button class="pmAddBtn" type="button" onclick="openAddPaymentSheet()">إضافة</button>
+        </div>
+      </main>
+
+      <!-- ============ Order Creation Sheet ============ -->
+      <div id="orderOverlay" class="overlay" style="display: none">
+        <div class="orderSheet" role="dialog" aria-modal="true">
+          <div class="orderSheet__header">
+            <button class="icon-btn" type="button" onclick="closeOrder()">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <div class="orderSheet__titleWrap">
+              <div id="orderTitle" class="orderSheet__title">—</div>
+              <div class="orderSheet__meta">
+                BSC <span id="orderTimer" class="orderSheet__window">(15 min payment window)</span>
+              </div>
+            </div>
+            <button class="icon-btn" type="button" onclick="closeOrder()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="orderSheet__price">
+            <div class="orderSheet__priceLabel">السعر</div>
+            <div class="orderSheet__priceValue"><span id="orderPrice">0.00</span> <span class="unit">EGP</span></div>
+          </div>
+
+          <div class="orderSheet__panel">
+            <div class="orderSheet__dual">
+              <div class="orderSheet__row">
+                <div class="orderSheet__rowLabel">Amount</div>
+                <div class="orderInput">
+                  <input id="orderAmountIn" type="number" inputmode="decimal" placeholder="0.00" oninput="onOrderAmountInput()" />
+                  <span class="suffix">EGP</span>
+                  <button id="orderAllBtnAmount" class="miniBtn" type="button" onclick="orderAllAmount()">All</button>
+                </div>
+              </div>
+              <div class="orderSheet__swap" aria-hidden="true">
+                <i class="fa-solid fa-arrow-up-arrow-down"></i>
+              </div>
+              <div class="orderSheet__row">
+                <div class="orderSheet__rowLabel">Quantity</div>
+                <div class="orderInput">
+                  <input id="orderQtyIn" type="number" inputmode="decimal" placeholder="0.00" oninput="onOrderQtyInput()" />
+                  <span class="suffix">USDT</span>
+                  <button id="orderAllBtnQty" class="miniBtn" type="button" onclick="orderAllQty()">All</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="orderSheet__limits">
+              Limits: <b><span id="orderMinLimit">0.00</span> - <span id="orderMaxLimit">0.00</span></b> EGP
+              <span class="orderSheet__avail">• Available: <b><span id="orderAvailable">0.00</span></b> USDT</span>
+            </div>
+
+            <div class="orderSheet__payment">
+              <div class="orderSheet__paymentLeft">
+                <span class="orderPayIcon"><i id="orderPaymentIcon" class="fa-solid fa-building-columns"></i></span>
+                <div>
+                  <div class="orderSheet__paymentLabel">Payment Method</div>
+                  <div id="orderPaymentMethod" class="orderSheet__paymentValue">—</div>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-left" style="color: var(--muted)"></i>
+            </div>
+
+            <div id="orderHint" class="hint" style="display: none"></div>
+
+            <button id="orderActionBtn" class="primaryBtn" type="button" disabled onclick="confirmOrder()">
+              Buy USDT with 0 Fees
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ Add Payment Method Sheet ============ -->
+      <div id="addPaymentOverlay" class="overlay" onclick="closeAddPaymentSheet()" style="display:none; background:rgba(0,0,0,0.45); z-index:2000; align-items:flex-end; justify-content:center; padding:0;"></div>
+      <div id="addPaymentSheet" class="bottomSheet">
+        <div class="bottomSheet__handle"></div>
+        <div class="bottomSheet__title">إضافة طريقة دفع</div>
+        <div id="pmTypeList" class="pmTypeList"></div>
+        <div id="pmDetailsSection" style="display:none; margin-top:16px;">
+          <div id="pmDetailsTitle" class="pmDetails__title">تفاصيل طريقة الدفع</div>
+          <div class="pmDetails__fields">
+            <div class="field">
+              <label class="label">الاسم الكامل</label>
+              <div class="input">
+                <input id="pmNameIn" type="text" placeholder="أدخل اسمك الكامل" autocomplete="name" />
+              </div>
+            </div>
+            <div id="pmCashFields" style="display:none;">
+              <div class="field" style="margin-top:12px;">
+                <label class="label">رقم الموبايل</label>
+                <div class="input">
+                  <input id="pmMobileIn" type="tel" inputmode="numeric" placeholder="مثال: 01xxxxxxxxx"
+                         pattern="[0-9+\s]*" autocomplete="tel" />
+                </div>
+              </div>
+            </div>
+            <div id="pmBankFields" style="display:none;">
+              <div class="field" style="margin-top:12px;">
+                <label class="label">اسم البنك</label>
+                <div class="input">
+                  <input id="pmBankNameIn" type="text" placeholder="مثال: Banque Misr" autocomplete="organization" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:12px;">
+                <label class="label">رقم الحساب / IBAN</label>
+                <div class="input">
+                  <input id="pmIbanIn" type="text" inputmode="numeric" placeholder="مثال: EG800002000156789012345180002"
+                         autocomplete="off" />
+                </div>
+              </div>
+            </div>
+            <input id="pmNumberIn" type="hidden" />
+          </div>
+          <button class="pmSaveBtn" type="button" onclick="savePaymentMethod()">حفظ</button>
+        </div>
+      </div>
+
+      <!-- ============ Support Sheet ============ -->
+      <div id="supportOverlay" class="overlay" onclick="closeSupportSheet()" style="display:none; background:rgba(0,0,0,0.45); z-index:2000; align-items:flex-end; justify-content:center; padding:0;"></div>
+      <div id="supportSheet" class="bottomSheet">
+        <div class="bottomSheet__handle"></div>
+        <div class="bottomSheet__title">الدعم الفني</div>
+        <div class="bottomSheet__sub">فريق الدعم متاح على مدار الساعة</div>
+        <div class="supportOptions">
+          <button class="supportOption" type="button" onclick="contactWhatsApp()">
+            <div class="supportOption__iconWrap" style="background:#25D36618; color:#25D366;">
+              <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <div class="supportOption__info">
+              <div class="supportOption__label">واتساب</div>
+              <div class="supportOption__sub">تواصل مباشر مع الدعم</div>
+            </div>
+            <i class="fa-solid fa-chevron-left" style="color:#D2D6DB;"></i>
+          </button>
+          <button class="supportOption" type="button" onclick="contactTelegram()">
+            <div class="supportOption__iconWrap" style="background:#2AABEE18; color:#2AABEE;">
+              <i class="fa-brands fa-telegram"></i>
+            </div>
+            <div class="supportOption__info">
+              <div class="supportOption__label">تيليجرام</div>
+              <div class="supportOption__sub">قناة الدعم الرسمية</div>
+            </div>
+            <i class="fa-solid fa-chevron-left" style="color:#D2D6DB;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast" style="display: none"></div>
+
+      <nav id="bottomNav" class="bottomNav" aria-label="Bottom Navigation">
+        <button class="bottomNav__item bottomNav__item--active" type="button" onclick="navTo('p2p')">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>P2P</span>
+        </button>
+        <button class="bottomNav__item" type="button" onclick="navTo('orders')">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>الطلبات</span>
+        </button>
+        <button class="bottomNav__item" type="button" onclick="navTo('ads')">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>إعلاناتي</span>
+        </button>
+        <button class="bottomNav__item" type="button" onclick="navTo('chat')">
+          <i class="fa-solid fa-comments"></i>
+          <span>الدردشة</span>
+        </button>
+        <button class="bottomNav__item" type="button" onclick="navTo('profile')">
+          <i class="fa-solid fa-user"></i>
+          <span>صفحتي</span>
+        </button>
+      </nav>
+    </div>
+
+    <script src="./firebase-config.js"></script>
+    <script src="./wallet.js"></script>
+    <script src="./ads.js"></script>
+    <script src="./orders.js"></script>
+    <script src="./chat.js"></script>
+    <script src="./profile.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </body>
+</html>

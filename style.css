@@ -1,0 +1,3219 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@200;300;400;500;600;700&display=swap");
+
+:root{
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --text: #0b0f19;
+  --muted: #6b7280;
+  --line: rgba(0,0,0,.08);
+  --input: #f9fafb;
+  --soft: #f7f7f7; /* required Total Amount background */
+  --chip: #f3f4f6;
+  --shadow: 0 10px 30px rgba(0,0,0,.08);
+
+  --green: #16a34a;
+  --red: #dc2626;
+  --black: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root{
+    --bg: #0b0f19;
+    --panel: #0f172a;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --line: rgba(255,255,255,.12);
+    --input: rgba(255,255,255,.06);
+    --soft: rgba(255,255,255,.06); /* still “soft grey” in dark mode */
+    --chip: rgba(255,255,255,.08);
+    --shadow: 0 16px 40px rgba(0,0,0,.45);
+  }
+}
+
+*{ box-sizing: border-box; }
+
+/* ⭐ KEYBOARD FIX:
+   لا نضع height:100% على html/body عشان لما الكيبورد بيفتح viewport يتصغّر،
+   الصفحة تقدر تطوّل وتسمح للـ input إنه يطلع فوق الكيبورد بدل ما يتقفل.
+   نستعمل --vh (مرتبط بـ window.visualViewport) كـ min-height مرن. */
+html, body{
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+  /* ⭐ منع السحب المرتد العمودي اللي بيشد الصفحة لمكانها القديم بعد قفل الكيبورد */
+  overscroll-behavior-y: contain;
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family: "IBM Plex Sans Arabic", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 300; /* thin baseline like OKX */
+}
+
+button,input{ font-family:inherit; }
+
+/* remove iOS zoom issues on inputs */
+input, button { font-size: 16px; }
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+.app{ min-height:100%; max-width: 100%; overflow-x: hidden; } /* ⭐ يضمن مفيش حاجة تطلع برّه عرض الصفحة */
+
+/* Top bar */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 4px; /* ⭐ أدنى gap بين الجوانب */
+  padding: 10px 16px; /* 16px من حواف الصفحة محفوظة */
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  /* ⭐ Safety net: لو لسه مش كافي على شاشة صغيرة، الهيدر بس يبقى قابل للسحب أفقياً */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.topbar::-webkit-scrollbar{ display: none; }
+
+.topbar__left{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.topbar__right{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.brand{ font-weight: 800; letter-spacing: -0.02em; font-size: 18px; flex-shrink: 0; }
+
+.icon-btn{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.icon-btn:active{ transform: scale(.98); }
+
+.chip{
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  padding: 8px 12px;
+  display:inline-flex;
+  gap: 8px;
+  align-items:center;
+  cursor:pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+.chip--danger{
+  background: color-mix(in oklab, var(--red) 10%, transparent);
+  border-color: color-mix(in oklab, var(--red) 20%, transparent);
+  color: var(--red);
+}
+.chip--ok{
+  background: color-mix(in oklab, var(--green) 12%, transparent);
+  border-color: color-mix(in oklab, var(--green) 22%, transparent);
+  color: var(--green);
+}
+
+/* ⭐ Mini variant — مواصفات موحّدة بالظبط لكل صناديق الهيدر (chip--mini + balanceChip--mini) */
+.chip--mini{
+  padding: 4px 8px;
+  border-radius: 8px;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 26px;
+  max-height: 26px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+.chip--mini > span,
+.chip--mini > i{
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* Header balance component */
+.balanceChip{
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  cursor:pointer;
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.balanceChip--ok{ color: var(--green); border-color: color-mix(in oklab, var(--green) 24%, var(--line) 76%); }
+.balanceChip--zero{ color: var(--red); border-color: color-mix(in oklab, var(--red) 24%, var(--line) 76%); }
+
+/* ⭐ DUAL BALANCE: container — أدنى gap + بدون تقلّص (السحب الأفقي على الهيدر يكفّل الباقي) */
+.balanceDual{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* ⭐ مواصفات بالظبط مطابقة لـ chip--mini (نفس الـ padding/font/height/radius) */
+.balanceChip--mini{
+  padding: 4px 8px;
+  border-radius: 8px;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 26px;
+  max-height: 26px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+.balanceChip--mini > span{
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* أيقونة السهم المزدوج — صغيرة عشان مياخدش مساحة */
+.balanceSwap{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  opacity: .8;
+}
+.balanceSwap i{ display:inline-block; }
+
+/* Pages */
+.page{ display:none; padding: 16px; }
+.page--active{ display:block; }
+
+/* leave room for bottom nav */
+.page{ padding-bottom: 92px; }
+
+/* ⭐ UI: Top row — EGP pill (left) + small Buy/Sell toggle (right) */
+.marketTopRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap: nowrap;          /* ⭐ RESPONSIVE: ميلفش الصف ع شاشات صغيرة */
+  gap: 12px;
+  padding: 8px 0 12px;        /* ⭐ HEADER FIX: مسافة سفلية أوسع تفصل عن صف الفلاتر */
+  min-width: 0;               /* ⭐ RESPONSIVE: يسمح للأطفال بالـ text-overflow */
+  min-height: 52px;           /* ⭐ HEADER FIX: ارتفاع ثابت يضمن استقرار الصف */
+}
+
+/* EGP pill (left side) */
+.egpPill{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  background: #f0f2f5;
+  color: #1e2329;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;             /* ⭐ RESPONSIVE: متفعّصش */
+}
+.egpPill .fa-chevron-down{
+  font-size: 10px;
+  color: #707a8a;
+}
+.egpPill__label{ letter-spacing: .2px; }
+
+/* Market buy/sell toggle — compact, OKX-style */
+.marketToggle{
+  position: relative;
+  display:flex;
+  gap: 0;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f0f2f5;
+  border: none;
+  overflow: hidden;
+  margin: 0;
+  width: 178px;
+  height: 36px;
+  flex: 0 0 auto;
+}
+.marketToggle__thumb{
+  position:absolute;
+  top: 3px;
+  bottom: 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: transform .18s ease;
+  transform: translateX(0);
+}
+/* In RTL, first button is on the right; for "sell" we slide thumb left */
+.marketToggle--buy .marketToggle__thumb{ transform: translateX(0); }
+.marketToggle--sell .marketToggle__thumb{ transform: translateX(-100%); }
+
+.marketToggle__btn{
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border: none;
+  background: transparent;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #707a8a;
+  cursor:pointer;
+  padding: 0;
+  line-height: 1;
+}
+.marketToggle__btn--active{
+  color: #1e2329;
+  font-weight: 700;
+}
+
+/* Keep old small tabs for Orders/My Ads */
+.tabs{
+  display:flex;
+  gap: 14px;
+  padding: 8px 0 10px;
+}
+.tab{
+  border:none;
+  background:transparent;
+  padding: 10px 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--muted) 100%, var(--text) 0%);
+  border-bottom: 3px solid transparent;
+  cursor:pointer;
+}
+.tab--active{
+  color: var(--text);
+  border-bottom-color: var(--black);
+}
+
+/* marketHeader removed from markup — keep styles harmless if reused elsewhere */
+.marketHeader{ display:none; }
+
+/* ⭐ UI: Filters row — funnel (left) + inline text filters (right, RTL) */
+.filtersRow{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  flex-wrap: nowrap;          /* ⭐ RESPONSIVE: ميلفش */
+  padding: 4px 0 14px;        /* ⭐ HEADER FIX: مسافة علوية أصغر — التوب راو خد المسافة */
+  gap: 12px;
+  min-width: 0;               /* ⭐ RESPONSIVE: يخلّي ellipsis يشتغل جوّاه */
+  min-height: 44px;           /* ⭐ HEADER FIX: ارتفاع ثابت يمنع الكسرة */
+}
+.filtersRow__group{
+  display:flex;
+  align-items:center;
+  gap: clamp(10px, 3.5vw, 22px); /* ⭐ RESPONSIVE: gap يصغر ع شاشات صغيرة */
+  flex-wrap: nowrap;
+  min-width: 0;               /* ⭐ RESPONSIVE: يخلّي الأطفال يقدروا يصغروا */
+}
+.filterPill{
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #1e2329;
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 4px 0;
+  cursor:pointer;
+  font-weight: 600;
+  min-width: 0;
+  line-height: 1;
+}
+.filterPill__label{
+  font-size: 14px;
+  color: #1e2329;
+  font-weight: 600;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filterPill .fa-chevron-down{
+  font-size: 10px;
+  color: #707a8a;
+}
+
+/* ⭐ UI: USDT filter — circular icon next to the word */
+.filterPill--usdt{
+  gap: 8px;
+}
+.filterPill__icon{
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-image: url("https://i.postimg.cc/26wytmb7/1777454138041.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #26a17b; /* fallback in case image is slow to load */
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+/* Funnel icon button — borderless on the far end */
+.filterIcon{
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #1e2329;
+  flex-shrink: 0;             /* ⭐ RESPONSIVE: الأيقونة متفعّصش */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  padding: 0;
+  font-size: 18px;
+}
+
+/* Legacy .pill (no longer rendered on market page; kept for any other usage) */
+.pill{
+  display:inline-flex;
+  gap: 8px;
+  align-items:center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-weight: 700;
+  font-size: 12px;
+}
+.pill__dot{ width:10px; height:10px; border-radius: 999px; background: var(--green); }
+.pill--muted{ color: var(--muted); }
+
+/* Lists and cards */
+.list{ display:flex; flex-direction: column; gap: 14px; }
+.adCard{
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.adCard__top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 12px;
+}
+.merchant{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 700;
+  min-width: 0;
+}
+.avatar{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--chip);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+.merchant span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.priceRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+/* Binance-style action button alignment (market listing only) */
+.priceRow--market{
+  align-items: center;
+}
+.priceRow--market .marketInfo{
+  flex: 1;
+  min-width: 0;
+}
+.priceRow--market .marketAction{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+.priceRow--market .actionBtn{
+  height: 38px;
+  min-width: 90px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-size: 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: none;
+}
+.price{
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.unit{ font-size: 12px; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.meta{ margin-top: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+
+.actionBtn{
+  border:none;
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-weight: 900;
+  color: #fff;
+  cursor:pointer;
+  box-shadow: 0 12px 24px rgba(0,0,0,.10);
+}
+.actionBtn--green{ background: var(--green); }
+.actionBtn--red{ background: var(--red); }
+.actionBtn:disabled{
+  background: #d1d5db;
+  color: #6b7280;
+  cursor:not-allowed;
+  box-shadow: none;
+}
+
+/* Create page */
+.subheader{
+  position: sticky;
+  top: 69px; /* below topbar */
+  z-index: 40;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+.subheader__title{ font-weight: 800; font-size: 16px; }
+
+.createWrap{ padding-bottom: 40px; }
+
+.segmented{
+  margin: 14px 0 18px;
+  background: var(--chip);
+  border-radius: 16px;
+  padding: 4px;
+  display:flex;
+  gap: 4px;
+}
+.segmented__btn{
+  flex:1;
+  border:none;
+  background: transparent;
+  border-radius: 12px;
+  padding: 10px 0;
+  font-weight: 800;
+  color: var(--muted);
+  cursor:pointer;
+}
+.segmented__btn--active{
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+}
+
+.card{ padding: 6px 0 0; }
+.card__title{ font-size: 12px; font-weight: 800; margin-bottom: 12px; }
+.field{ display:flex; flex-direction: column; gap: 8px; }
+.label{ font-size: 12px; font-weight: 600; color: var(--muted); }
+
+.input{
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
+  background: var(--input);
+  padding: 0 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.input--muted{ background: color-mix(in oklab, var(--chip) 90%, var(--input) 10%); }
+.input input{
+  width: 100%;
+  border:none;
+  outline:none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  text-align:right;
+}
+.inputActions{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.maxBtn--inInput{
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+.suffix{ font-size: 12px; font-weight: 800; color: var(--muted); }
+.divider{ height: 1px; background: var(--line); margin: 18px 0; }
+
+.limits{ display:flex; align-items:center; gap: 10px; }
+.tilde{ color: #9ca3af; font-weight: 900; }
+
+.sellOnly{
+  margin-top: 10px;
+  display:flex;
+  align-items:center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+.maxBtn{
+  border:none;
+  background: var(--black);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 900;
+  font-size: 12px;
+  cursor:pointer;
+}
+.maxBtn:active{ transform: scale(.98); }
+.subtext{ font-size: 12px; font-weight: 500; color: var(--muted); }
+
+/* Min/Max limits placeholders look more "OKX" */
+.limits .input input::placeholder{
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--muted) 90%, transparent);
+}
+
+.totalBar{
+  margin-top: 18px;
+  background: var(--soft); /* required */
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display:flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.totalBar__label{ font-weight: 800; font-size: 13px; }
+.totalBar__value{ font-weight: 900; font-size: 16px; }
+
+.primaryBtn{
+  width: 100%;
+  margin-top: 14px;
+  border:none;
+  border-radius: 14px;
+  height: 52px;
+  font-weight: 900;
+  font-size: 16px;
+  color: #fff;
+  background: var(--green);
+  box-shadow: var(--shadow);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+}
+.primaryBtn--red{ background: var(--red); }
+.primaryBtn:disabled{
+  background: #d1d5db;
+  color: #6b7280;
+  box-shadow: none;
+  cursor:not-allowed;
+}
+.primaryBtn.is-loading{
+  background: color-mix(in oklab, var(--text) 18%, #9ca3af 82%);
+  color: #fff;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* OKX-style gray CTA button (My Ads empty state) */
+.grayBtn{
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  height: 52px;
+  font-weight: 800;
+  font-size: 16px;
+  color: #222;
+  background: #f5f5f5;
+  box-shadow: none;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.grayBtn:active{ transform: scale(.99); }
+
+/* Spinner (used inside buttons) */
+.spinner{
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: rgba(255,255,255,1);
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Overlay modal */
+.overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,.55);
+  padding: 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modal{
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.modal__header{
+  padding: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom: 1px solid var(--line);
+}
+.modal__title{ font-weight: 900; font-size: 14px; }
+.modal__sub{ margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.modal__body{ padding: 14px; }
+.hint{ margin-top: 8px; color: var(--red); font-size: 12px; font-weight: 700; }
+
+/* Order creation (OKX-style) */
+.orderSheet{
+  width: 100%;
+  max-width: 520px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.orderSheet__header{
+  padding: 12px 12px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  gap: 10px;
+}
+.orderSheet__titleWrap{
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+.orderSheet__title{
+  font-weight: 900;
+  font-size: 16px;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orderSheet__meta{
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.orderSheet__window{
+  font-size: 10px;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--muted) 88%, transparent);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+.orderSheet__price{
+  padding: 14px 14px 10px;
+}
+.orderSheet__priceLabel{
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.orderSheet__priceValue{
+  margin-top: 6px;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.orderSheet__panel{
+  padding: 0 14px 14px;
+}
+.orderSheet__dual{
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #f5f5f5;
+  padding: 12px;
+}
+.orderSheet__row{
+  display:flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.orderSheet__rowLabel{
+  font-size: 10px;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--muted) 90%, transparent);
+}
+.orderInput{
+  height: 52px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
+  background: var(--panel);
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 0 10px;
+}
+.orderInput input{
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  text-align: right;
+}
+.miniBtn{
+  border: 1px solid var(--line);
+  background: #f5f5f5;
+  color: #222;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.miniBtn:active{ transform: scale(.99); }
+.orderSheet__swap{
+  height: 42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: var(--muted);
+}
+.orderSheet__limits{
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--muted) 90%, transparent);
+}
+.orderSheet__avail{ white-space: nowrap; }
+.orderSheet__payment{
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  padding: 12px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.orderSheet__paymentLeft{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  min-width: 0;
+}
+.orderPayIcon{
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--chip) 60%, transparent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: var(--text);
+}
+.orderSheet__paymentLabel{
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--muted);
+}
+.orderSheet__paymentValue{
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+/* Payment badges (OKX-style) */
+.payBadges{
+  margin-top: 10px;
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.payBadge{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--chip) 70%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+/* Subtle method variants */
+.payBadge--instapay{
+  border-color: color-mix(in oklab, #2563eb 22%, var(--line) 78%);
+  background: color-mix(in oklab, #2563eb 10%, transparent);
+  color: #1d4ed8;
+}
+.payBadge--vodafone-cash{
+  border-color: color-mix(in oklab, #dc2626 22%, var(--line) 78%);
+  background: color-mix(in oklab, #dc2626 10%, transparent);
+  color: #b91c1c;
+}
+.payBadge--etisalat-cash{
+  border-color: color-mix(in oklab, #16a34a 22%, var(--line) 78%);
+  background: color-mix(in oklab, #16a34a 10%, transparent);
+  color: #15803d;
+}
+.payBadge--banque-misr,
+.payBadge--al-mashreq-bank,
+.payBadge--alex-bank,
+.payBadge--ahlibank{
+  border-color: color-mix(in oklab, #0f172a 18%, var(--line) 82%);
+  background: color-mix(in oklab, #0f172a 7%, transparent);
+  color: color-mix(in oklab, var(--text) 75%, #0f172a 25%);
+}
+
+/* Toast */
+.toast{
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  background: rgba(17,24,39,.92);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  max-width: calc(100% - 24px);
+  text-align: center;
+}
+
+/* Small page title */
+.pageTitle{
+  font-weight: 900;
+  font-size: 16px;
+  margin: 8px 0 12px;
+}
+
+/* Empty state (OKX style) */
+.emptyState{
+  text-align: center;
+  padding: 38px 0 10px;
+}
+.emptyState__icon{
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--chip) 70%, transparent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin: 0 auto 14px;
+  color: var(--muted);
+  font-size: 28px;
+}
+.emptySvg{
+  width: 54px;
+  height: 54px;
+}
+
+/* Active badge */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--green) 25%, var(--line) 75%);
+  background: color-mix(in oklab, var(--green) 12%, transparent);
+  color: var(--green);
+  font-weight: 900;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* My Ads (professional management card) */
+.myAdCard{
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.myAdCard__top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.myAdCard__title{
+  font-weight: 900;
+  font-size: 14px;
+}
+.myAdStats{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.myAdStat{
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--chip) 50%, transparent);
+  border-radius: 14px;
+  padding: 10px 10px;
+  min-width: 0;
+}
+.myAdStat__label{
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.myAdStat__value{
+  font-weight: 900;
+  font-size: 14px;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.myAdActions{
+  display:flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.btn{
+  flex:1;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn:active{ transform: scale(.99); }
+.btn--neutral{
+  background: color-mix(in oklab, var(--chip) 72%, transparent);
+}
+.btn--danger{
+  background: color-mix(in oklab, var(--red) 12%, transparent);
+  border-color: color-mix(in oklab, var(--red) 22%, var(--line) 78%);
+  color: var(--red);
+}
+
+.emptyState--compact{
+  padding: 28px 0 10px;
+}
+
+@media (max-width: 360px){
+  .myAdStats{ grid-template-columns: 1fr; }
+}
+.emptyState__title{
+  font-weight: 900;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.emptyState__sub{
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* Select + dropdown (payment methods) */
+.select{
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
+  background: var(--input);
+  padding: 0 12px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  cursor:pointer;
+}
+.select__text{
+  font-weight: 800;
+  color: var(--text);
+  font-size: 14px;
+}
+.dropdown{
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow:hidden;
+  box-shadow: var(--shadow);
+}
+.dropdown__item{
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 12px 12px;
+  text-align: right;
+  font-weight: 700;
+  cursor:pointer;
+}
+.dropdown__item:hover{
+  background: color-mix(in oklab, var(--chip) 70%, transparent);
+}
+
+/* Bottom navigation */
+.bottomNav{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  height: 78px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content: space-around;
+  padding: 8px 10px 10px;
+}
+.bottomNav__item{
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display:flex;
+  flex-direction: column;
+  align-items:center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 10px;
+  cursor:pointer;
+  width: 20%;
+}
+.bottomNav__item i{
+  font-size: 18px;
+}
+.bottomNav__item--active{
+  color: var(--text);
+}
+
+/* Profile */
+.profileCard{
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.profileRow{ display:flex; gap: 12px; align-items:center; margin-bottom: 12px; }
+.avatar--lg{ width: 44px; height: 44px; font-size: 14px; }
+.profileAddr{ font-weight: 900; font-size: 13px; }
+
+/* Smaller tabs for orders */
+.tabs--small .tab{ font-size: 14px; padding: 8px 6px; }
+
+/* Small screens polish */
+@media (max-width: 360px){
+  .price{ font-size: 24px; }
+  .actionBtn{ padding: 10px 14px; }
+}
+/* تحسين ظهور مكتبة SweetAlert */
+.swal2-popup.swal2-toast {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    padding: 10px 15px !important;
+}
+
+/* ضبط أيقونة النجاح (الصح) */
+.swal2-icon.swal2-success {
+    border-color: #4caf50 !important;
+    color: #4caf50 !important;
+    scale: 0.8; /* تصغير بسيط لتناسب الـ Compact */
+}
+
+/* ============================================================
+   CHAT (Modern Conversation View)
+   ============================================================ */
+#chatPage { padding: 0 !important; }
+#chatListWrap { padding: 14px; }
+
+.chatConv {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* ✅ FIX: 100% من الـ chatPage بدل 100vh عشان الـ keyboard */
+  min-height: 0; /* ✅ مهم للـ flex children عشان الـ scroll يحصل جوّه body */
+  overflow: hidden; /* الـ scroll بس على .chatConv__body */
+  /* ✅ خلفية بستايل Binance P2P:
+       - رمادي فاتح جداً off-white
+       - فوقه pattern من أيقونات doodle شفافة (دولار/بيتكوين/يورو/دوائر) */
+  background-color: #F5F6F7;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='%23000' stroke-width='1' stroke-opacity='0.05'><circle cx='22' cy='28' r='10'/><circle cx='118' cy='40' r='13'/><circle cx='52' cy='110' r='8'/><circle cx='132' cy='130' r='11'/></g><g fill='%23000' fill-opacity='0.05' font-family='Arial, sans-serif' font-weight='700'><text x='18' y='34' font-size='14'>$</text><text x='112' y='46' font-size='16'>%E2%82%BF</text><text x='46' y='116' font-size='13'>%E2%82%AC</text><text x='126' y='136' font-size='12'>%C2%A5</text><text x='80' y='75' font-size='15'>$</text><text x='38' y='65' font-size='11' fill-opacity='0.04'>%E2%82%BF</text><text x='95' y='118' font-size='12' fill-opacity='0.04'>$</text></g><g stroke='%23000' stroke-opacity='0.04' stroke-width='1' fill='none'><path d='M70 30 q 6 -8 12 0 t 12 0' /><path d='M20 80 q 5 -6 10 0 t 10 0' /><path d='M115 95 q 4 -5 8 0 t 8 0' /></g></svg>");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* ---------- Header ---------- */
+.chatConv__header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #EAECEF;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  flex-shrink: 0;
+}
+.chatConv__iconBtn {
+  background: transparent; border: none; cursor: pointer;
+  padding: 6px; color: #1E2329; font-size: 18px; border-radius: 8px;
+  transition: background .15s ease;
+}
+.chatConv__iconBtn:hover { background: #F5F5F7; }
+.chatConv__identity { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.chatConv__avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  object-fit: cover; border: 2px solid #fff; box-shadow: 0 0 0 1px #EAECEF;
+  flex-shrink: 0;
+}
+.chatConv__identityText { display: flex; flex-direction: column; min-width: 0; }
+.chatConv__name {
+  font-size: 15px; font-weight: 700; color: #1E2329; line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chatConv__statusLine {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: #5E6673; margin-top: 2px;
+}
+.chatConv__bullet { color: #5E6673; }
+
+/* ---------- Action Bar ---------- */
+.chatActionBar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 14px; background: #fff;
+  border-bottom: 1px solid #EAECEF;
+  flex-shrink: 0;
+}
+.chatActionBar__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.chatActionBar__title {
+  font-size: 13px; font-weight: 700; color: #1E2329;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chatActionBar__timerRow { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #f0b90b; }
+.chatActionBar__timerVal { font-weight: 700; }
+
+.chatActionBtn {
+  background: rgba(0,255,200,0.15);
+  backdrop-filter: blur(15px);
+  border: 2px solid rgba(0,255,200,0.32);
+  color: #1E2329;
+  font-size: 13px; font-weight: 700;
+  padding: 9px 18px; border-radius: 12px;
+  cursor: pointer; transition: transform .15s ease, opacity .15s ease;
+  white-space: nowrap; flex-shrink: 0;
+}
+.chatActionBtn:hover:not(:disabled) { transform: translateY(-1px); }
+.chatActionBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---------- Body ----------
+   ✅ FIX (scroll inside body, not whole page):
+   - flex: 1 1 0 + min-height: 0 → الـ scroll يحصل جوّه body بس
+   - overscroll-behavior: contain → يمنع pull-to-refresh على الصفحة الأم
+   - -webkit-overflow-scrolling: touch → momentum scroll ناعم على iOS
+*/
+.chatConv__body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: transparent; /* النقشة جاية من .chatConv */
+}
+
+/* ---------- System Message Card (Binance P2P style) ----------
+   ✅ كرت عريض، رمادي فاتح جداً، الكلمة المفتاحية للينك سماوي
+       مع خط رفيع أسود تحته (Binance underline style)
+*/
+.sysMsg {
+  align-self: stretch;            /* عريض على عرض المحادثة */
+  width: 100%;
+  max-width: 100%;
+  background: #F2F3F5;             /* رمادي فاتح جداً */
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 6px 0;
+  font-size: 13px;
+  color: #1E2329;
+  line-height: 1.75;
+  box-shadow: none;
+  border: 1px solid #EAECEF;
+}
+.sysMsg__text {
+  color: #1E2329;
+  font-weight: 500;
+}
+/* الـ link جوه نفس سطر الكلام في الآخر */
+.sysMsg__link {
+  display: inline;                 /* جزء من نفس الجملة، مش سطر منفصل */
+  margin-inline-start: 4px;
+  color: #00B4FF;                  /* سماوي زي Binance */
+  cursor: pointer;
+  font-weight: 600;
+  border-bottom: 1px solid #1E2329; /* خط رفيع أسود تحت اللينك */
+  padding-bottom: 1px;
+  text-decoration: none;
+}
+.sysMsg__link:hover { opacity: 0.85; }
+.sysMsg__time {
+  display: block;
+  font-size: 10px;
+  color: #9AA0A6;
+  margin-top: 6px;
+  text-align: left;
+  direction: ltr;
+}
+
+/* ---------- User Messages (Binance P2P style) ----------
+   ✅ FIX #2:
+   - Sender (me)   → اليمين (align-self: flex-end)، فقاعة رمادي مع خط أسود
+   - Receiver (them) → اليسار (align-self: flex-start)، فقاعة بيضاء بحدود رمادية خفيفة
+*/
+.chatMsg {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.55; word-wrap: break-word;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+  margin: 2px 4px;
+}
+.chatMsg--me {
+  align-self: flex-end;
+  background: #E4E6EB;
+  color: #000000;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-bottom-right-radius: 4px;
+}
+.chatMsg--them {
+  align-self: flex-start;
+  background: #FFFFFF;
+  color: #1E2329;
+  border: 1px solid #E5E7EB;
+  border-bottom-left-radius: 4px;
+}
+.chatMsg__time {
+  font-size: 10px; color: #9AA0A6;
+  margin-top: 6px; direction: ltr; text-align: left;
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+}
+.chatMsg__img { max-width: 100%; border-radius: 10px; margin-top: 6px; display: block; }
+
+/* ============================================================
+   ✅ READ RECEIPTS (Binance-style: ✓ / ✓✓)
+   ============================================================
+   - علامة ✓ واحدة بلون رمادي فاتح   = لسه ما فتحش الشات
+   - علامتين ✓✓ بلون أخضر            = فتح الشات وقرأ
+   - الموضع: جنب التوقيت في نفس السطر داخل الفقاعة
+   - transition سلس بين الحالتين
+*/
+.chatMsg__readMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;                /* النصين علامة جنب بعض بدون مسافة */
+  color: #B8BCC4;        /* رمادي فاتح للحالة الافتراضية (مش مقروءة) */
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color .25s ease, transform .2s ease;
+}
+.chatMsg__readMark i {
+  font-size: 12px;
+  line-height: 1;
+}
+/* العلامة الثانية تتداخل شوية فوق الأولى زي بينانس بالظبط */
+.chatMsg__readMark i + i {
+  margin-inline-start: -5px;
+}
+/* الحالة المقروءة: لون أخضر زاهي */
+.chatMsg__readMark.is-read {
+  color: #1FAB55;
+  transform: scale(1.02);
+}
+/* تظهر فقط في فقاعة "me" */
+.chatMsg--them .chatMsg__readMark { display: none; }
+
+/* ============================================================
+   ✅ TYPING INDICATOR (يكتب الآن…)
+   ============================================================
+   - يظهر مكان "آخر ظهور" تحت اسم الطرف التاني في الهيدر
+   - 3 نقط بتنبض بالتوالي (نفس فلسفة WhatsApp/Telegram)
+   - لون سماوي #00B4FF يماشي ستايل الشات
+   - بيختفي تلقائياً لما الطرف التاني يتوقف عن الكتابة
+*/
+.typingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #00B4FF;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+}
+.typingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: 4px;
+}
+.typingDots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #00B4FF;
+  display: inline-block;
+  animation: typingBlink 1.2s infinite ease-in-out;
+}
+.typingDots span:nth-child(2) { animation-delay: 0.18s; }
+.typingDots span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes typingBlink {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40%           { opacity: 1;    transform: translateY(-2px); }
+}
+
+/* ---------- Footer Input (Pill-shaped) ---------- */
+.chatConv__footer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-top: 1px solid #EAECEF;
+  flex-shrink: 0;
+}
+.chatConv__plus, .chatConv__send {
+  background: #fff; border: 1px solid #EAECEF;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #5E6673; font-size: 16px;
+  transition: background .15s ease, transform .15s ease;
+  flex-shrink: 0;
+}
+.chatConv__plus:hover { background: #F5F5F7; }
+
+/* ✅ FIX (send button): سهم سماوي شفاف نفس لون زر الدردشة (#00B4FF)،
+   خافت وقت الـ input فاضي، يفتّح/ينوّر بسلاسة لما تكتب — احترافي. */
+.chatConv__send {
+  background: rgba(0, 180, 255, 0.10);
+  color: #00B4FF;
+  border: 1px solid rgba(0, 180, 255, 0.20);
+  box-shadow: none;
+  opacity: 0.55;
+  transition: opacity .22s ease, background .22s ease,
+              border-color .22s ease, box-shadow .22s ease,
+              transform .12s ease;
+}
+.chatConv__send i { transition: transform .22s cubic-bezier(.2,.9,.3,1); }
+.chatConv__send.is-active {
+  background: rgba(0, 180, 255, 0.18);
+  border-color: rgba(0, 180, 255, 0.35);
+  color: #00B4FF;
+  opacity: 1;
+  box-shadow: 0 2px 12px rgba(0, 180, 255, 0.28);
+}
+.chatConv__send.is-active i { transform: translateX(1px) rotate(-8deg); }
+.chatConv__send:hover {
+  background: rgba(0, 180, 255, 0.22);
+  border-color: rgba(0, 180, 255, 0.40);
+}
+.chatConv__send:active { transform: scale(0.94); }
+.chatConv__inputWrap {
+  flex: 1;
+  background: #FFFFFF;
+  border-radius: 999px; /* Pill shape */
+  padding: 0 16px;
+  display: flex; align-items: center;
+  border: 1px solid #E5E7EB;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.chatConv__inputWrap:focus-within {
+  border-color: rgba(0, 180, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 180, 255, 0.12);
+}
+.chatConv__input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 14px; padding: 12px 0; color: #1E2329; font-family: inherit;
+}
+.chatConv__input::placeholder { color: #9AA0A6; }
+
+@media (max-width: 480px) {
+  .chatConv__name { font-size: 14px; }
+  .chatActionBar__title { font-size: 12px; }
+  .chatActionBtn { padding: 8px 14px; font-size: 12px; }
+}
+
+.swal2-icon.swal2-success [class^=swal2-success-line] {
+    background-color: #4caf50 !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+    border: .25em solid rgba(76, 175, 80, 0.2) !important;
+}
+
+/* ============================================================
+   SPA FIX — CHAT FULLSCREEN MODE
+   ============================================================
+   لما المحادثة تكون مفتوحة، بنخفي الـ Topbar والـ BottomNav
+   عشان الشات يبقى Full-Screen زي تطبيقات WhatsApp/Telegram
+   ============================================================ */
+body.chat-fullscreen .topbar,
+body.chat-fullscreen #bottomNav {
+  display: none !important;
+}
+
+/* ✅ FIX (Layout broken / page drag — STRONG version):
+   - body & html: نمنع أي scroll أو bounce أو سحب على الصفحة كلها
+   - chatPage: position fixed + 100dvh عشان الكيبورد ميسحبش
+   - chatConv: position relative — حاوية للأبصلوت positioning
+   - الهيدر + Action Bar + الفوتر: position absolute مع touch-action:none
+     عشان أي لمس عليهم ميحركش الصفحة
+   - الـ Body بس هو اللي بيـ scroll، بمسافة top/bottom = ارتفاع الهيدر+الفوتر
+*/
+/* ✅ قفل صارم للـ scroll على html و body سوا — iOS بيحاول يـ scroll كل واحد فيهم */
+html.chat-fullscreen-html,
+body.chat-fullscreen {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  position: fixed !important;     /* يثبّت الـ document بحيث ميتسحبش بالكيبورد */
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  touch-action: none;              /* يمنع pinch/pan على الـ body */
+  -webkit-overflow-scrolling: auto !important;
+}
+
+/* ✅ الـ html برضه — iOS بيـ scroll الـ documentElement لو ما اتقفلش */
+html.chat-fullscreen-html {
+  -webkit-text-size-adjust: 100% !important;  /* يمنع iOS من زوم تلقائي */
+}
+
+body.chat-fullscreen #chatPage {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  /* ✅ Cascade ذكي لارتفاع الـ viewport (الأهم في الأخير):
+     1) 100vh        — fallback للـ browsers الأقدم جداً
+     2) 100svh       — small viewport: ثابت حتى لو الكيبورد فتحت (ميتشالش)
+     3) var(--p2p-vh)— من Visual Viewport API لما متاح (الأدق على الموبايل)
+  */
+  height: 100vh !important;
+  height: 100svh !important;
+  height: var(--p2p-vh, 100svh) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  z-index: 1000;
+  display: block !important;
+}
+
+body.chat-fullscreen .page:not(#chatPage) {
+  padding-bottom: 0 !important;
+}
+
+/* ✅ الحاوية: relative عشان نـpoint الأبناء عليها بـ absolute */
+body.chat-fullscreen #chatConvWrap.chatConv {
+  position: relative !important;
+  height: 100% !important;
+  width: 100% !important;
+  max-height: 100% !important;
+  display: block !important;       /* مش flex خلاص — أبصلوت positioning */
+  overflow: hidden !important;
+  /* ✅ ألغي الـ slide-in animation في fullscreen عشان transform ميـ leak */
+  animation: none !important;
+  transform: none !important;
+}
+
+/* ============================================================
+   ✅ STRICT FIXED HEIGHTS — الحل الجذري لمشكلة "تمدّد الهيدر"
+   ============================================================
+   - كل عنصر له ارتفاع ثابت بالبكسل (height + min-height + max-height)
+   - مفيش safe-area-inset / padding ديناميكية تخلي الهيدر يـ "يتمط"
+   - مفيش flex-grow ولا height:100% على أي عنصر ثابت
+   - الأرقام:
+       Header     = 60px
+       Action Bar = 58px
+       Footer     = 60px
+       Body       = ما تبقى (calc)
+*/
+/* ⭐⭐⭐ HEADER LOCK — Telegram/WhatsApp-Web style ⭐⭐⭐
+   - الهيدر position:fixed على top:0 (بالنسبة للـ layout viewport)
+   - + transform: translateY(--p2p-vv-top) عشان "يلحق" الـ visual
+     viewport لما المتصفح يحركه (iOS Safari بيعمل كده مع الكيبورد)
+   - النتيجة: الهيدر مرتبط بأعلى الشاشة الحقيقية، مش بيختفي خالص
+   - will-change: transform عشان GPU layer منفصل (حركة ناعمة)
+*/
+body.chat-fullscreen .chatConv__header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 62px !important;
+  min-height: 62px !important;
+  max-height: 62px !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  z-index: 1030 !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+  touch-action: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  flex: none !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  /* ⭐ يلحق الـ visual viewport */
+  transform: translate3d(0, var(--p2p-vv-top, 0px), 0) !important;
+  will-change: transform !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+body.chat-fullscreen .chatActionBar {
+  position: fixed !important;
+  top: 62px !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  z-index: 1029 !important;
+  background: #ffffff !important;
+  touch-action: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  flex: none !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  /* ⭐ نفس الترجمة عشان يفضل تحت الهيدر ملصوق */
+  transform: translate3d(0, var(--p2p-vv-top, 0px), 0) !important;
+  will-change: transform !important;
+}
+
+/* ============================================================
+   ⭐⭐⭐ FOOTER STICKY-TO-VISUAL-VIEWPORT (rAF + GPU) ⭐⭐⭐
+   ============================================================
+   - الفوتر position:fixed على bottom:0 بالنسبة للـ layout viewport
+   - بنرفعه فوق الكيبورد عبر translate3d(0, -kbOffset, 0) — ده على
+     الـ GPU (compositor)، مفيهوش reflow، فالـ rAF loop يحدّثه كل
+     فريم بسلاسة كاملة بدون أي "نطّ" أو jumping.
+   - مفيش transition (الـ rAF نفسه = animation بفريم 60Hz)
+   - مفيش padding-bottom: 400px hack — منطقة الرسائل ترتفع تلقائياً
+     لأن الفوتر `bottom: 0` ثابت + body bottom محسوب من نفس المتغير.
+*/
+body.chat-fullscreen .chatConv__footer {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  margin: 0 !important;
+  z-index: 1030 !important;
+  background: #ffffff !important;
+  touch-action: none !important;
+  flex: none !important;
+  box-sizing: border-box !important;
+  /* ⭐ المتغير ده بيتحدّث من rAF loop في chat.js كل frame */
+  transform: translate3d(0, calc(var(--p2p-kb-offset, 0px) * -1), 0) !important;
+  will-change: transform !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* مفيش transition — الـ rAF بيحرك كل frame */
+}
+/* استثناء: الـ input لازم يقبل اللمس عشان الكيبورد يفتح ويـ select */
+body.chat-fullscreen .chatConv__footer .chatConv__input,
+body.chat-fullscreen .chatConv__footer .chatConv__inputWrap,
+body.chat-fullscreen .chatConv__footer .chatConv__plus,
+body.chat-fullscreen .chatConv__footer .chatConv__send {
+  touch-action: manipulation !important;
+}
+
+/* ✅ منطقة الرسائل:
+   - top    = 62 (header) + 56 (action bar) = 118px ثابت
+   - bottom = 60 (footer) + ارتفاع الكيبورد (--p2p-kb-offset)
+   - مفيش padding ولا transition — الفوتر بـ transform، فالـ body
+     بيستخدم نفس المتغير لـ bottom عشان يتطابق معاه فريم بفريم.
+*/
+body.chat-fullscreen .chatConv__body {
+  position: fixed !important;
+  top: 118px !important;
+  bottom: calc(60px + var(--p2p-kb-offset, 0px)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 14px 14px !important;
+  background: #F7F8FA !important;
+  box-sizing: border-box !important;
+  /* مفيش transition هنا كمان — يتحرك مع الفوتر فريم بفريم */
+}
+
+/* Slide-in animation للمحادثة (يدخل من اليسار) — بس مش في fullscreen */
+.chatConv {
+  animation: chatConvSlideIn 0.32s cubic-bezier(.2, .9, .3, 1);
+}
+@keyframes chatConvSlideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ============================================================
+   COUNTER BADGES — Bottom Nav + Headers
+   ============================================================
+   - .navBadge: badge أحمر صغير على أيقونات الـ bottom-nav
+                (للطلبات النشطة / الرسائل غير المقروءة)
+   - .ordersHeaderBadge: badge في هيدر صفحة الطلبات
+   ============================================================ */
+.navBadge {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 18px; /* RTL-aware: على يسار الأيقونة في RTL */
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #FF4D4F;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(255, 77, 79, 0.45);
+  border: 2px solid #fff;
+  z-index: 5;
+  animation: badgePulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* ⛔ .ordersHeaderBadge اتشال — كانت دايرة حمراء عايمة برّه الـ tabs.
+   لو فيه بقايا قديمة في DOM، نخفيها بالقوة عشان مظهر نضيف. */
+.ordersHeaderBadge { display: none !important; }
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 2px 6px rgba(255, 77, 79, 0.45); }
+  50%      { transform: scale(1.08); box-shadow: 0 2px 12px rgba(255, 77, 79, 0.65); }
+}
+
+/* ✅ FIX #1: Badge على زرار "قيد التنفيذ" تحديداً (مش على باقي التبويبات) */
+.tabBadge {
+  position: absolute;
+  top: -2px;
+  inset-inline-end: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #FF4D4F;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(255, 77, 79, 0.45);
+  border: 2px solid #fff;
+  z-index: 5;
+  pointer-events: none;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  animation: badgePulse 1.6s ease-in-out infinite;
+}
+
+/* ============================================================
+   ✅ FINAL FIX (white-page): Early chat shell من ?chat= URL
+   لما يجي المستخدم من order-details بـ ?chat=<id>، نخفي أي
+   صفحة تانية فوراً ونوّر chatPage عشان ما يشوفش ومضة بيضاء
+   أو صفحة السوق فجأة قبل ما الشات يتفتح.
+   ============================================================ */
+body.chat-loading-from-url .page:not(#chatPage) { display: none !important; }
+body.chat-loading-from-url #chatPage              { display: block !important; }
+body.chat-loading-from-url #loadingScreen,
+body.chat-loading-from-url #splashScreen,
+body.chat-loading-from-url .splash,
+body.chat-loading-from-url .preloader        { display: none !important; }
+
+/* ✅ SAFETY NET (UI freeze on back):
+   لو لأي سبب الشات اتقفل بس بعض الـ classes اتسابت أو chatPage بقى مرسوم
+   فوق غيره (مثلاً position: fixed من قاعدة قديمة)، نضمن إنه:
+   - مش بيحجب أي clicks لما body مش chat-fullscreen ومش chat-loading-from-url
+   - مفيش pointer-events شغال على body بعد إقفال الشات
+*/
+body:not(.chat-fullscreen):not(.chat-loading-from-url) #chatPage:not(.page--active) {
+  display: none !important;
+  pointer-events: none !important;
+}
+body:not(.chat-fullscreen):not(.chat-loading-from-url) .chatConv {
+  pointer-events: none;
+}
+
+/* ============================================================
+   ✅ FIX #3: GLASSMORPHISM TOAST (Soft grey, blur, top, compact)
+   نخلي تصميم الـ SweetAlert2 toast رمادي شفاف بـ blur خلفي،
+   حجم صغير، أعلى الشاشة، z-index عالي بس مش مغطي على الهيدر.
+   ============================================================ */
+.swal2-container.swal2-top {
+  top: 70px !important;        /* أسفل الهيدر مباشرة */
+  z-index: 9999 !important;     /* أقل من الـ bottomNav (z-index 60 تحت بكتير من 9999) لكن فوق المحتوى */
+  pointer-events: none !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast {
+  background: rgba(40, 44, 54, 0.55) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  border-radius: 14px !important;
+  padding: 8px 14px !important;
+  min-width: 180px !important;
+  max-width: 88vw !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+  font-family: "IBM Plex Sans Arabic", 'Segoe UI', Tahoma, sans-serif !important;
+  pointer-events: auto;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-title {
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+/* ✅ FIXED: استبدال أيقونات SweetAlert2 الافتراضية (اللي بتيجي مكسرة في الـ toast)
+   برموز نصية بسيطة وصافية: ✕ / ✓ / !  بدوائر بيضاء شفافة */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-icon {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  margin: 0 8px 0 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1.6px solid #ffffff !important;
+  background: rgba(255,255,255,0.18) !important;
+  color: #ffffff !important;
+  font-family: "IBM Plex Sans Arabic", 'Segoe UI', Tahoma, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+  scale: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+/* اخفي كل الأشكال الداخلية اللي بترسمها SweetAlert2 (LINEs / RINGs / X-marks) */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-icon * {
+  display: none !important;
+}
+/* احط الرمز نفسه عن طريق pseudo-element — صافي وواضح */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-icon::before {
+  display: inline-block !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  position: static !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--error .swal2-icon::before   { content: "\2715"; } /* ✕ */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--success .swal2-icon::before { content: "\2713"; } /* ✓ */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--info .swal2-icon::before    { content: "!";    }
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-timer-progress-bar-container {
+  height: 2px !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-timer-progress-bar {
+  background: rgba(255,255,255,0.45) !important;
+}
+
+/* ============================================================
+   ✅ FALLBACK TOAST ICONS (لو SweetAlert2 مش متحمل)
+   ============================================================
+   - .ico هي الـ span اللي بيتحط فيها رمز ✓ أو × أو !
+   - بنخليها دايرة بيضاء شفافة فيها الرمز بوضوح
+*/
+.p2p-fallback-toast {
+  font-family: "IBM Plex Sans Arabic", 'Segoe UI', Tahoma, sans-serif;
+}
+.p2p-fallback-toast .ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 1.6px solid #ffffff;
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.p2p-fallback-toast .txt {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   ✅ ضمان ظهور أيقونات SweetAlert2 (X / ✓ / !)
+   ============================================================
+   مهم جداً: SweetAlert2 toast بيخفي الـ icon بعض الأحيان لو الـ
+   container مش بيـ render الـ ::before/::after. نخلّي الأيقونة
+   تظهر بوضوح فوق الـ toast.
+*/
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast .swal2-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ---------- Toast variants by type ---------- */
+/* Error: أحمر شفاف + أيقونة X */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--error {
+  background: rgba(255, 77, 79, 0.50) !important;
+  border-color: rgba(255, 77, 79, 0.40) !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--error .swal2-icon.swal2-error,
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--error .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+  border-color: #fff !important;
+  color: #fff !important;
+  background-color: transparent !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--error .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+  background-color: #fff !important;
+}
+
+/* Success: أخضر شفاف + أيقونة ✓ */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--success {
+  background: rgba(46, 160, 87, 0.50) !important;
+  border-color: rgba(46, 160, 87, 0.40) !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--success .swal2-icon.swal2-success,
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--success .swal2-icon.swal2-success .swal2-success-ring {
+  border-color: #fff !important;
+  color: #fff !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--success .swal2-icon.swal2-success [class^='swal2-success-line'] {
+  background-color: #fff !important;
+}
+
+/* Info / تنبيه: رمادي شفاف + أيقونة ! (الوضع الافتراضي) */
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--info {
+  background: rgba(40, 44, 54, 0.55) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+}
+.swal2-container .swal2-popup.swal2-toast.p2p-glass-toast--info .swal2-icon.swal2-info {
+  border-color: #fff !important;
+  color: #fff !important;
+}
+
+/* ============================================================
+   ⭐⭐⭐ LONG-PRESS MESSAGE MENU (Copy / Reply) ⭐⭐⭐
+   ============================================================
+   - بيظهر بعد ضغطة طويلة 500ms على أي رسالة
+   - Floating menu فوق الرسالة، scale-in animation
+   - بيقفل لما نضغط برّه أو نختار option
+*/
+.chatMsg {
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: background 0.18s ease;
+}
+.chatMsg.is-pressing {
+  background: rgba(0, 180, 255, 0.06);
+  border-radius: 12px;
+}
+
+.lpMenu {
+  position: fixed;
+  z-index: 2000;
+  background: #1E2329;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.30);
+  padding: 6px;
+  display: flex;
+  gap: 4px;
+  transform-origin: 50% 100%;
+  animation: lpMenuIn 0.16s cubic-bezier(.2,.9,.3,1);
+  pointer-events: auto;
+}
+.lpMenu__btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.12s ease;
+}
+.lpMenu__btn:hover, .lpMenu__btn:active {
+  background: rgba(255,255,255,0.12);
+}
+.lpMenu__btn i { font-size: 12px; opacity: 0.9; }
+.lpMenu__sep {
+  width: 1px;
+  background: rgba(255,255,255,0.12);
+  margin: 4px 0;
+}
+@keyframes lpMenuIn {
+  from { opacity: 0; transform: scale(0.85) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.lpMenu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1999;
+  background: transparent;
+}
+
+/* ============================================================
+   ⭐ REPLY BANNER فوق الفوتر (Telegram/WhatsApp style)
+   ============================================================ */
+body.chat-fullscreen .replyBanner {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  z-index: 1029;
+  background: #F5F7FA;
+  border-top: 1px solid #EAECEF;
+  padding: 8px 14px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  box-sizing: border-box;
+  /* ⭐ يطلع مع الفوتر فوق الكيبورد بنفس المتغير */
+  transform: translate3d(0, calc(var(--p2p-kb-offset, 0px) * -1), 0);
+  will-change: transform;
+}
+body.chat-fullscreen .replyBanner.is-active { display: flex; }
+.replyBanner__bar {
+  width: 3px;
+  align-self: stretch;
+  background: #00B4FF;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.replyBanner__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.replyBanner__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #00B4FF;
+}
+.replyBanner__text {
+  font-size: 13px;
+  color: #5E6673;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.replyBanner__close {
+  background: transparent;
+  border: none;
+  color: #9AA0A6;
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.replyBanner__close:hover { background: rgba(0,0,0,0.05); }
+
+/* ⭐ لما الـ reply فاتح:
+   - الفوتر يفضل ثابت في مكانه (bottom: 0 + transform بسبب الكيبورد)
+     عشان الـ + والإرسال يفضلوا واضحين تحت الـ reply
+   - الـ replyBanner بـ bottom: 60px (= ارتفاع الفوتر) فبيقعد فوقه بالظبط
+   - منطقة الرسائل تقصر بقد الـ banner (50px) + الفوتر (60px) + الكيبورد
+*/
+body.chat-fullscreen.has-reply .chatConv__body {
+  bottom: calc(110px + var(--p2p-kb-offset, 0px)) !important;
+}
+
+/* ============================================================
+   ⭐ REPLY BUBBLE — Quoted snippet styling (WhatsApp/Telegram style)
+   ============================================================
+   - فقاعة "them" (خلفية بيضاء) → الاقتباس بخلفية رمادية فاتحة + شريط أزرق
+   - فقاعة "me"   (خلفية رمادية #E4E6EB) → الاقتباس بخلفية أغمق + شريط أزرق غامق
+   - شريط رأسي 4px على الجانب الأيمن (RTL = جنب بداية الاقتباس) لتمييز واضح
+   - فاصل بسيط بين الاقتباس ونص الرسالة الأساسي
+*/
+.chatMsg__replyRef {
+  background: #F0F2F5;                 /* رمادي فاتح واضح فوق الخلفية البيضاء */
+  border-right: 4px solid #00B4FF;     /* الشريط الجانبي (RTL = يمين = جانب البداية) */
+  padding: 7px 10px 7px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;                  /* فصل واضح عن نص الرسالة */
+  font-size: 12px;
+  line-height: 1.4;
+  color: #1E2329;                      /* نص داكن واضح */
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+/* فقاعة "me" خلفيتها رمادية فاتحة (#E4E6EB)، فالاقتباس لازم يكون أغمق منها */
+.chatMsg--me .chatMsg__replyRef {
+  background: rgba(0, 0, 0, 0.08);     /* أغمق من خلفية الفقاعة بشكل ملحوظ */
+  border-right-color: #0090CC;          /* أزرق أغمق شوية يماشي الخلفية الأغمق */
+  color: #1E2329;                       /* نص داكن واضح (مش أبيض!) */
+}
+
+/* ============================================================
+   ⭐ NEW: Unified topbar layout (RTL right→left)
+   [P2P] [address chip] [↔ long arrow] [NEW instant box] [dual balance panel]
+   ============================================================ */
+.topbar--unified{
+  justify-content: space-between;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+/* أيقونة السهم المزدوج الطويل (fa-arrows-left-right) — أوضح وأطول من الصغير */
+.balanceSwap--long{
+  width: 24px;
+  height: 26px;
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* ============================================================
+   ⭐ BINANCE-STYLE AD CARD (.binAd) — مطابق لصورة باينانس
+   ============================================================
+   عمودان (RTL): يمين = التاجر/السعر/الحدود ، يسار = الدفع/الوقت/الزر.
+   ترتيب الـ DOM في ads.js صحيح طبيعياً (right ثم left)،
+   فمش محتاجين row-reverse هنا.
+   ============================================================ */
+.adCard.binAd{
+  background: #ffffff;
+  padding: 14px 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border-bottom: none;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.adCard.binAd:last-child{ margin-bottom: 0; }
+
+.binAd__row{
+  display: flex;
+  /* ⭐ DOM order: [binAd__left, binAd__right]. مع row-reverse في RTL،
+     أول DOM child يظهر شمال (left)، تاني DOM يظهر يمين (right).
+     النتيجة: العمود الشمال (الوقت/الدفع/الزر) شمال، والعمود اليمين (التاجر/السعر) يمين. */
+  flex-direction: row-reverse;
+  gap: 14px;
+  align-items: stretch;
+}
+.binAd__right{
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* ⭐ عمود الأكشن — الكود النهائي حرفياً حسب أمر المهندس
+   الترتيب: الدفع فوق → الوقت في النص → الزرار تحت (نحيف زي باينانس) */
+
+/* 1. ضبط العمود وتوزيعه */
+/* --- التعديل اليدوي النهائي: شد العناصر للقاع --- */
+.binAd__left {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important; /* دي القوة اللي بتسحبهم لتحت خالص */
+  align-items: flex-end !important;    /* إزاحة لليسار عشان يظبط مكانهم */
+  height: 100% !important;             /* إجبار العمود يطول لآخر الكارت */
+  min-height: 130px !important; 
+  gap: 6px !important;                 /* تضييق المسافة بين التلاتة جداً */
+  padding-bottom: 0px !important;      /* لمسة أخيرة عشان يلمسوا الحافة تحت */
+}
+
+/* مغناطيس السحب: بيخلق فراغ فوق العناصر ويطردهم لتحت */
+.binAd__payment {
+  margin-top: auto !important; 
+  order: 1 !important; /* الدفع فوق */
+}
+
+.binAd__time {
+  order: 2 !important; /* الوقت في النص */
+}
+
+/* تنسيق الزرار الرفيع (Slim) زي باينانس */
+.binAd__btn, .binAd__action {
+  order: 3 !important;      /* الزرار تحت خالص */
+  width: 80px !important;   /* عرض نحيف */
+  height: 23px !important;  /* ارتفاع رفيع جداً */
+  font-size: 12px !important;
+  padding: 0 !important;
+  flex: none !important;    /* ممنوع يتمط */
+  border-radius: 4px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* — ترويسة التاجر (أقصى يمين في RTL) — */
+.binAd__merchant{
+  display: flex;
+  /* ⭐ معكوس عن المرة اللي فاتت — حسب الصورة:
+     "_pikata" (الاسم) ثم "P" (الآفاتار) من شمال لليمين،
+     يعني الآفاتار على يمين الاسم.
+     DOM: [avatar, name] + row الافتراضية في RTL → أول DOM (avatar) عند البداية = اليمين. */
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start; /* في RTL = أقصى يمين */
+}
+.binAd__name{
+  font-weight: 700;
+  font-size: 15px;
+  color: #0b1722;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  letter-spacing: 0;
+}
+.binAd__avatar{
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e6e8eb;
+  color: #0b1722;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+.binAd__avatarDot{
+  position: absolute;
+  bottom: -1px;
+  inset-inline-end: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #02C076;
+  border: 2px solid #fff;
+}
+
+/* — سطر إحصائيات التاجر —
+   DOM: [statsRate, |, statsOrders]
+   بـ row-reverse في RTL: orders يطلع يمين والـ rate (النسبة) يطلع شمال
+   زي ما الصورة بتقول "100.00%  |  تداول من الطلبات: 1" */
+.binAd__stats{
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #707A8A;
+  font-weight: 500;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.binAd__statsSep{
+  color: #d1d5db;
+  margin: 0 2px;
+}
+.binAd__statsRate{
+  color: #707A8A;
+  font-weight: 600;
+}
+.binAd__statsOrders{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.binAd__statsOrders b{
+  color: #0b1722;
+  font-weight: 700;
+}
+
+/* — منطقة السعر —
+   DOM: [priceFiat E£, priceVal 50.00, priceCurr /USDT]
+   في RTL مع row الافتراضية: E£ يمين (ملصوقة بالسعر)، السعر النص، /USDT شمال.
+   gap: 0 + ضبط الـ margins يدوياً عشان E£ تكون "ملصوقة" بالضبط
+   و/USDT يبقى شمال السعر بمسافة طبيعية. */
+.binAd__price{
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  margin-top: 2px;
+  justify-content: flex-start; /* في RTL = يمين، فالكتلة كلها متمحورة يمين */
+}
+/* unicode-bidi: isolate يحمي محتوى كل span من إعادة ترتيب bidi
+   (يحفظ "/USDT" زي ما هي مش "USDT/") */
+.binAd__priceFiat{
+  font-size: 14px;
+  color: #0b1722;            /* ⭐ نفس لون السعر تقريباً عشان تبان "ملصوقة" */
+  font-weight: 700;
+  unicode-bidi: isolate;
+  margin-inline-end: 2px;    /* مسافة شعرية بين E£ والرقم */
+  align-self: baseline;
+}
+.binAd__priceVal{
+  font-size: 26px;
+  font-weight: 800;
+  color: #0b1722;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  unicode-bidi: isolate;
+}
+.binAd__priceCurr{
+  font-size: 12px;           /* ⭐ خط أصغر زي الصورة */
+  color: #707A8A;
+  font-weight: 500;
+  unicode-bidi: isolate;
+  margin-inline-start: 4px;  /* مسافة صغيرة بين السعر و /USDT */
+  align-self: baseline;
+}
+
+/* — الحدّ والمتاح — */
+.binAd__line{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #707A8A;
+  font-weight: 500;
+  justify-content: flex-start;
+}
+.binAd__lineLbl{
+  color: #707A8A;
+  font-weight: 500;
+}
+.binAd__lineVal{
+  color: #0b1722;
+  font-weight: 600;
+}
+
+/* — طريقة الدفع — Clean Rewrite حسب تعليمات المهندس.
+   DOM: <div class="binAd__payment"><span name>...</span><span class="payment-bar"/></div>
+   في RTL، <span class="payment-bar"> هي آخر DOM child فبتطلع على الشمال بصرياً
+   جنب نص اسم الدفع. */
+.binAd__payment{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #0b1722;
+  min-height: 18px;
+  line-height: 1.2;
+}
+.binAd__paymentName{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* الشريط العمودي الملوّن — span مستقل (مش border) */
+.payment-bar{
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: #707A8A;
+  border-radius: 1px;
+  flex: 0 0 3px;
+}
+/* ألوان شريطة طريقة الدفع — تتطبق على .payment-bar */
+.binAd__payment.payBar--vodafone-cash .payment-bar{ background: #E60000; }
+.binAd__payment.payBar--instapay      .payment-bar{ background: #02C076; }
+.binAd__payment.payBar--etisalat-cash .payment-bar{ background: #16a34a; }
+.binAd__payment.payBar--orange-cash   .payment-bar,
+.binAd__payment.payBar--orange-money  .payment-bar{ background: #ff7a00; }
+.binAd__payment.payBar--banque-misr     .payment-bar,
+.binAd__payment.payBar--al-mashreq-bank .payment-bar,
+.binAd__payment.payBar--alex-bank       .payment-bar,
+.binAd__payment.payBar--ahlibank        .payment-bar,
+.binAd__payment.payBar--cib             .payment-bar{ background: #f0b90b; }
+.binAd__payment.payBar--default       .payment-bar{ background: #d1d5db; }
+.binAd__payment.payBar--default       { color: #707A8A; }
+
+/* — الوقت — حسب تعليمات المهندس:
+   DOM: <div class="binAd__time"><span>15 دقيقة</span><svg class="icon-clock"/></div>
+   row-reverse: عكس النص والأيقونة لتناسب الموقع المعكوس.
+   font-size: 11px / color: #707A8A. */
+.binAd__time{
+  display: flex;
+  flex-direction: row-reverse; /* عكس النص والأيقونة لتناسب الموقع المعكوس */
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #707A8A;
+  font-weight: 500;
+}
+.binAd__time .icon-clock{
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: #707A8A;
+}
+/* ⭐ خط منقّط خفيف تحت "15 دقيقة" زي الصورة */
+.binAd__time > span{
+  border-bottom: 1px dotted #cfd6dd;
+  padding-bottom: 1px;
+}
+
+/* ⭐ زر الأكشن — Compact (ضيّق وقصير) ، تحت الوقت بالظبط زي الصورة */
+.binAd__btn{
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  width: 100%;                  /* بيملا عرض العمود الضيق (96px) */
+  padding: 0 10px;
+  /* الزر بيفضل في الأسفل عن طريق justify-content: flex-end على .binAd__left */
+  box-shadow: none;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.binAd__btn--green{ background: #02C076; }
+.binAd__btn--red  { background: #F84960; }
+.binAd__btn:hover { filter: brightness(0.95); }
+.binAd__btn:active{ transform: translateY(1px); }
+
+/* إلغاء الظل الأزرق عند النقر على أي عنصر */
+* {
+    -webkit-tap-highlight-color: transparent !important; /* للموبايل (أندرويد وآيفون) */
+    outline: none !important;                            /* للكمبيوتر والمتصفحات */
+}
+
+/* التأكيد على الأزرار والأيقونات تحديداً */
+button, a, i, .bottomNav__item, .market__tab {
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    -webkit-user-select: none !important; /* منع تحديد النص بالخطأ عند الضغط */
+    user-select: none !important;
+}
+
+/* إلغاء الفوكس المزعج في بعض المتصفحات */
+button:focus, button:active, a:focus, a:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* ============================================================
+   profile_additions.css
+   أضف هذا الملف في نهاية style.css
+   ============================================================ */
+
+/* ---------- Page slide animation (for sub-pages) ---------- */
+.page--slide {
+  animation: pageSlideIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@keyframes pageSlideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ============================================================
+   PROFILE PAGE (صفحتي)
+   ============================================================ */
+
+/* Top row: title + support icon */
+.prof__topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 16px;
+}
+.prof__supportBtn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.prof__supportBtn:hover { background: var(--chip); }
+
+/* Identity card */
+.prof__identityCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  margin-bottom: 14px;
+}
+.prof__avatarWrap {
+  flex: 0 0 auto;
+}
+.prof__avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--line);
+  display: block;
+}
+.prof__identityInfo {
+  flex: 1;
+  min-width: 0;
+}
+.prof__addr {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  font-family: 'SFMono-Regular', Menlo, monospace;
+  letter-spacing: 0.5px;
+}
+.prof__network {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.prof__networkDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+  flex-shrink: 0;
+}
+
+/* Stats row */
+.prof__statsRow {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  margin-bottom: 14px;
+}
+.prof__statBox {
+  flex: 1;
+  text-align: center;
+}
+.prof__statDivider {
+  width: 1px;
+  height: 36px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+.prof__statVal {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.prof__statVal--green { color: #16a34a; }
+.prof__statLabel {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Balance card */
+.prof__balanceCard {
+  padding: 20px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  margin-bottom: 14px;
+}
+.prof__balanceLabel {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.prof__balanceVal {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 18px;
+  letter-spacing: -0.5px;
+}
+.prof__balanceBtns {
+  display: flex;
+  gap: 10px;
+}
+.prof__actionBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 10px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+  font-family: inherit;
+}
+.prof__actionBtn:active { transform: scale(0.97); }
+.prof__actionBtn--deposit {
+  background: #000;
+  color: #fff;
+}
+.prof__actionBtn--withdraw {
+  background: var(--panel);
+  color: var(--text);
+  border: 1.5px solid var(--line);
+}
+.prof__actionBtn--deposit:hover { opacity: 0.85; }
+.prof__actionBtn--withdraw:hover { background: var(--chip); }
+
+/* Menu list */
+.prof__menuList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.prof__menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+  font-family: inherit;
+}
+.prof__menuItem:last-child { border-bottom: none; }
+.prof__menuItem:active { background: var(--chip); }
+.prof__menuItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.prof__menuIconWrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.prof__menuIconWrap--blue  { background: rgba(59, 130, 246, 0.12); color: #3B82F6; }
+.prof__menuIconWrap--green { background: rgba(22, 163, 74, 0.12);  color: #16a34a; }
+.prof__menuLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.prof__menuArrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ============================================================
+   PAYMENT METHODS PAGE
+   ============================================================ */
+.pmList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 100px;
+}
+
+/* Empty state */
+.pmEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px 40px;
+  gap: 14px;
+}
+.pmEmpty__icon svg {
+  width: 80px;
+  height: 80px;
+}
+.pmEmpty__text {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Payment method card */
+.pmCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pmCard:last-child { border-bottom: none; }
+.pmCard__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pmCard__iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.pmCard__info { flex: 1; min-width: 0; }
+.pmCard__type {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.pmCard__name {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.pmCard__number {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'SFMono-Regular', monospace;
+  letter-spacing: 0.4px;
+}
+.pmCard__del {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(220, 38, 38, 0.08);
+  color: #DC2626;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.pmCard__del:hover { background: rgba(220, 38, 38, 0.15); }
+
+/* Add button (fixed bottom) */
+.pmAddBtnWrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  z-index: 10;
+}
+.pmAddBtn {
+  width: 100%;
+  padding: 17px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.pmAddBtn:active { opacity: 0.85; }
+
+/* ============================================================
+   ADD PAYMENT METHOD SHEET
+   ============================================================ */
+.bottomSheet {
+  position: fixed;
+  bottom: -100%;
+  left: 0;
+  right: 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border-radius: 24px 24px 0 0;
+  padding: 14px 16px 40px;
+  transition: bottom 0.36s cubic-bezier(0.2, 0.9, 0.3, 1);
+  z-index: 2001;
+}
+.bottomSheet.show { bottom: 0; }
+.bottomSheet__handle {
+  width: 40px;
+  height: 4px;
+  background: var(--line);
+  border-radius: 10px;
+  margin: 0 auto 20px;
+}
+.bottomSheet__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  text-align: center;
+}
+.bottomSheet__sub {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Type list inside add sheet */
+.pmTypeList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+.pmTypeItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s;
+  text-align: right;
+  font-family: inherit;
+  width: 100%;
+}
+.pmTypeItem:last-child { border-bottom: none; }
+.pmTypeItem:active { background: var(--chip); }
+.pmTypeItem--active { background: var(--chip); border-radius: 10px; }
+.pmTypeItem__iconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.pmTypeItem__label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pmTypeItem__arrow {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Details section after type selection */
+.pmDetails__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.pmDetails__fields { margin-bottom: 20px; }
+.pmSaveBtn {
+  width: 100%;
+  padding: 15px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.pmSaveBtn:active { opacity: 0.85; }
+
+/* ============================================================
+   SUPPORT SHEET
+   ============================================================ */
+.supportOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 8px;
+}
+.supportOption {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: inherit;
+  width: 100%;
+  text-align: right;
+}
+.supportOption:last-child { border-bottom: none; }
+.supportOption:active { background: var(--chip); }
+.supportOption__iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.supportOption__info { flex: 1; }
+.supportOption__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.supportOption__sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ============================================================
+   ⭐ Payment Methods Dropdown — Binance style
+   ============================================================ */
+
+/* Trigger button — white background, black arrow */
+.select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #D9DCE1;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  min-height: 50px;
+  color: #1A1A1A;
+  user-select: none;
+}
+.select:hover {
+  border-color: #B0B5BF;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.select .fa-chevron-down {
+  font-size: 12px;
+  color: #1A1A1A;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.select__text {
+  flex: 1;
+  font-size: 14px;
+  color: #9CA3AF;
+  text-align: right;
+}
+.select__text:has(.pm-selected-inner) { color: #1A1A1A; }
+
+/* Selected item inside trigger */
+.pm-selected-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.pm-selected-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.pm-selected-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+
+/* Dropdown container — modern light grey */
+.pm-dropdown {
+  border-radius: 12px;
+  border: 1px solid #E4E7ED;
+  background: #F4F6F9;
+  padding: 4px 0 0;
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  margin-top: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD2DA transparent;
+}
+
+/* Dropdown items */
+.pm-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: right;
+  transition: background .15s;
+  color: #1A1A1A;
+  position: relative;
+}
+.pm-dropdown-item:hover,
+.pm-dropdown-item:focus-visible {
+  background: rgba(0,0,0,0.04);
+  outline: none;
+}
+
+/* Icon circle */
+.pm-dropdown-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* Info block */
+.pm-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.pm-dropdown-type {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+  line-height: 1.3;
+  text-align: right;
+}
+.pm-dropdown-sub {
+  font-size: 12px;
+  color: #6B7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  direction: ltr;
+}
+
+/* Check mark for selected */
+.pm-dropdown-check {
+  color: #F0B90B;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* Empty / loading states */
+.pm-dropdown-empty,
+.pm-dropdown-loading {
+  padding: 20px 16px;
+  color: #6B7280;
+  font-size: 13px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Divider before "add" button */
+.pm-dropdown-divider {
+  height: 1px;
+  background: #E4E7ED;
+  margin: 4px 0;
+}
+
+/* Add payment method button */
+.pm-dropdown-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #F0B90B;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background .15s;
+  border-radius: 0 0 12px 12px;
+}
+.pm-dropdown-add:hover { background: rgba(240,185,11,0.06); }
+.pm-dropdown-add .fa-plus-circle { font-size: 15px; }
+
+/* ============================================================
+   Support / Headset icon — black
+   ============================================================ */
+.prof__supportBtn .fa-headset {
+  font-size: 20px;
+  color: #000000;
+}

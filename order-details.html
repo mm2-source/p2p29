@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>تفاصيل الطلب - P2P</title>
+
+  <!-- Firebase compat SDKs (must load before firebase-config.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+  <style>
+    :root {
+      --mint: #00ffc8;
+      --mint-glass: rgba(0, 255, 200, 0.15);
+      --ice-border: rgba(0, 255, 200, 0.3);
+      --dark: #1E2329;
+      --gray: #848E9C;
+      --bg: linear-gradient(160deg, #f0f4ff 0%, #e8fff9 100%);
+      --line-color: #EAECEF;
+      --special-btn: rgba(191, 255, 0, 0.85);
+      --disabled-btn: #EAECEF;
+      --red-warn: #FFF5F5;
+      --red-border: #FF4D4D;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--dark);
+      padding-bottom: 120px;
+      overflow-y: auto;
+      animation: pageSlideInLeft 0.35s cubic-bezier(.2, .9, .3, 1);
+    }
+    @keyframes pageSlideInLeft {
+      from { transform: translateX(-100%); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
+    }
+
+    #id_toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 500; display: none; z-index: 5000; }
+
+    .top-nav-bar { background: transparent; padding: 10px 20px 5px; display: flex; justify-content: space-between; align-items: center; }
+    .cancel-link { color: var(--dark); font-size: 14px; text-decoration: underline; font-weight: 600; cursor: pointer; }
+    .back-btn { display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 5px; }
+
+    .top-stepper { display: flex; gap: 8px; padding: 5px 20px 10px; background: transparent; }
+    .step-line { height: 4px; flex: 1; border-radius: 10px; background: #EAECEF; transition: background 0.5s ease; }
+    .step-line.active { background: #1E2329; }
+
+    .status-section { padding: 15px 20px 20px; }
+    #id_orderStatusTitle { font-size: 28px; font-weight: 800; margin-bottom: 5px; letter-spacing: -0.5px; }
+    .timer-text { font-size: 14px; font-weight: 500; }
+    #id_countdownTimer { color: #f0b90b; font-weight: 700; margin-right: 4px; }
+
+    .seller-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); margin: 0 20px 15px; padding: 8px 12px; border-radius: 18px; display: flex; justify-content: space-between; align-items: center; border: 5px solid rgba(255, 255, 255, 0.8); }
+    .seller-info { display: flex; align-items: center; gap: 12px; flex-direction: row; }
+    .glass-btn { white-space: nowrap; padding: 6px 12px; background: var(--mint-glass); backdrop-filter: blur(15px); border: 3px solid var(--ice-border); color: var(--dark); border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .seller-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1); }
+
+    .content-box { padding: 0 20px; }
+    .timeline-item { display: flex; gap: 16px; position: relative; }
+    .timeline-line { position: absolute; right: 12.5px; top: 32px; bottom: -5px; width: 4px; background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(4px); border: 0.5px solid rgba(0, 0, 0, 0.4); border-radius: 10px; z-index: 1; }
+    .dot { width: 28px; height: 28px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; z-index: 2; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .dot::before { content: ''; position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px; border-radius: 50%; padding: 2px; background: conic-gradient(from 0deg, transparent 0%, #000 20%, transparent 40%, #fff 50%, transparent 100%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: rotateGlow 1s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+    .timeline-line { width: 2px; background: rgba(0,0,0,0.05); overflow: hidden; }
+    .timeline-line::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 150px; background: linear-gradient(to bottom, transparent, #000 20%, #fff 50%, #000 80%, transparent); animation: scanMove 3.3s ease-in-out infinite; }
+    .timeline-content { flex: 1; padding-bottom: 35px; }
+
+    .data-list { background: #fff; border-radius: 16px; padding: 8px 18px; margin-top: 15px; border: 1px solid var(--line-color); }
+    .data-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f6f6f6; cursor: pointer; }
+    .data-row:last-child { border-bottom: none; }
+    .label { color: var(--gray); font-size: 13px; font-weight: 500; }
+    .val { font-weight: 700; font-size: 15px; }
+    .copy-icon { width: 16px; height: 16px; opacity: 0.6; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23848E9C'%3E%3Cpath d='M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z'/%3E%3C/svg%3E"); background-size: contain; background-repeat: no-repeat; }
+
+    #id_phase2 { display: none; padding: 0 20px; animation: fadeInUp 0.4s ease; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .p2-card { background: #fff; border-radius: 22px; padding: 22px; border: 1px solid var(--line-color); margin-bottom: 20px; }
+    .p2-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #fbfbfb; }
+    .p2-row:last-child { border-bottom: none; }
+    .type-buy { color: #02C076 !important; }
+    .type-sell { color: #FF4D4F !important; }
+
+    .footer { position: fixed; bottom: 0; left: 0; right: 0; background: transparent; padding: 25px 20px; z-index: 1000; }
+    .btn-main-footer { position: relative; overflow: hidden; width: 100%; padding: 16px; font-size: 16px; border-radius: 14px; border: 1px solid var(--ice-border); background: var(--mint-glass); font-weight: 600; cursor: pointer; }
+    .btn-main-footer::after { content: ''; position: absolute; top: 0; left: -150%; width: 120%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8) 15%, transparent 25%, rgba(255, 255, 255, 0.8) 35%, transparent 45%, rgba(255, 255, 255, 0.8) 55%, transparent); transform: skewX(-35deg); animation: shine 1.5s infinite ease-in-out; }
+    @keyframes shine { 0% { left: -150%; } 30% { left: 150%; } 100% { left: 150%; } }
+    @keyframes scanMove { 0% { top: -150px; } 100% { top: 100%; } }
+    @keyframes rotateGlow { 100% { transform: rotate(360deg); } }
+    .btn-waiting { background: var(--mint-glass) !important; backdrop-filter: blur(15px); color: var(--dark) !important; display: none; flex-direction: column; cursor: not-allowed; border: 1px solid var(--ice-border) !important; }
+    .btn-waiting.disabled-state { background: #EAECEF !important; color: #848E9C !important; border: 1px solid #D2D6DB !important; cursor: not-allowed; pointer-events: none; }
+
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 2000; }
+    .bottom-sheet { position: fixed; bottom: -100%; left: 0; right: 0; background: #fff; border-radius: 24px 24px 0 0; padding: 30px 20px 40px; transition: 0.4s ease; z-index: 2001; }
+    .bottom-sheet.show { bottom: 0; }
+    .handle { width: 45px; height: 5px; background: #EAECEF; border-radius: 10px; margin: -15px auto 25px; }
+    .upload-box { width: 85px; height: 85px; background: #F5F5F5; border: 1px dashed #D2D6DB; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; overflow:hidden; }
+    .upload-box img { width:100%; height:100%; object-fit:cover; border-radius:12px; }
+    .warning-sheet-box { margin-bottom: 20px; padding: 12px 16px; border-radius: 12px; background: var(--red-warn); border-right: 4px solid var(--red-border); color: #CC3333; font-size: 13px; font-weight: 600; line-height: 1.5; }
+    .checkbox-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 25px; }
+    .checkbox-row input { width: 20px; height: 20px; accent-color: var(--dark); }
+    .btn-notify-seller { width: 100%; padding: 18px; border-radius: 16px; border: none; background: var(--disabled-btn); color: var(--gray); font-size: 17px; font-weight: 800; cursor: not-allowed; transition: 0.3s; }
+    .btn-notify-seller.active { background: linear-gradient(135deg, var(--special-btn), rgba(0, 255, 200, 0.4)); color: #000; cursor: pointer; }
+
+    .expect-text { font-size: 14px; color: var(--dark); margin-top: 8px; font-weight: 500; }
+    .expect-text b { font-weight: 800; color: #000; }
+    #id_expectTimer { color: #f0b90b; margin: 0 4px; font-weight: 700; }
+
+    .confirm-option { padding: 9px; border-radius: 4px; border: 2px solid #eaecef; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; }
+    .confirm-option.selected-green { background: rgba(0, 255, 194, 0.12); border-color: #00ffc2; }
+    .confirm-option.selected-red { background: rgba(255, 69, 58, 0.12); border-color: #ff453a; }
+    .confirm-option p { margin: 0; font-size: 14px; font-weight: 600; color: #1e2329; }
+    .confirm-final-btn { width: 100%; padding: 14px; border-radius: 10px; border: none; background: rgba(0, 122, 255, 0.1); color: rgba(0, 122, 255, 0.4); font-weight: 700; font-size: 15px; margin-top: 10px; cursor: not-allowed; transition: 0.3s; }
+    .confirm-final-btn.active { background: rgba(0, 122, 255, 0.2); color: rgba(0, 122, 255, 1); cursor: pointer; }
+    .hidden-cancel { display: none !important; }
+
+    /* Proof preview block (seller view) */
+    .proof-preview { margin-top:10px; padding:10px; background:#fff; border:1px solid var(--line-color); border-radius:12px; }
+    .proof-preview img { width:100%; max-height:280px; object-fit:contain; border-radius:10px; }
+    .proof-preview .label { display:block; margin-bottom:8px; }
+
+    /* Order not found / loading */
+    #id_loadingScreen, #id_notFoundScreen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 6000; padding: 20px; text-align: center; }
+    #id_notFoundScreen { display: none; }
+    .nf-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .nf-sub { color: var(--gray); margin-bottom: 20px; }
+    .nf-btn { padding: 12px 24px; background: #1E2329; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+    /* Chat overlay */
+    #id_chatPanel { position: fixed; bottom: -100%; left: 0; right: 0; height: 80vh; background: #fff; border-radius: 24px 24px 0 0; transition: bottom 0.4s ease; z-index: 3001; display: flex; flex-direction: column; }
+    #id_chatPanel.show { bottom: 0; }
+    .chat-head { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .chat-head h3 { margin: 0; font-weight: 800; font-size: 16px; }
+    .chat-close { background: none; border: none; font-size: 26px; cursor: pointer; color: #555; }
+    #id_chatMessages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-msg { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+    .chat-msg.me { align-self: flex-start; background: var(--mint-glass); border: 1px solid var(--ice-border); }
+    .chat-msg.them { align-self: flex-end; background: #f5f5f5; }
+    .chat-msg.system { align-self: center; background: #fff8d6; font-size: 12px; padding: 6px 12px; }
+    .chat-composer { padding: 10px 12px; border-top: 1px solid #eee; display: flex; gap: 8px; align-items: center; }
+    .chat-composer input[type="text"] { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; font-size: 14px; }
+    .chat-send { padding: 12px 18px; background: #1E2329; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div id="id_loadingScreen">
+    <div style="font-weight:700;">جارٍ تحميل الطلب...</div>
+  </div>
+
+  <div id="id_notFoundScreen">
+    <div class="nf-title">الطلب غير موجود</div>
+    <div class="nf-sub">الرابط غير صالح أو تم حذف الطلب.</div>
+    <button class="nf-btn" onclick="window.location.href='index.html'">العودة للرئيسية</button>
+  </div>
+
+  <div id="id_toast">تم النسخ بنجاح</div>
+
+  <div class="top-nav-bar">
+    <div class="back-btn" onclick="window.location.href='index.html'" id="id_headerBackBtn">
+      <svg viewBox="0 0 24 24" width="24" height="24"><path fill="var(--dark)" d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4v-2z"/></svg>
+    </div>
+    <a href="javascript:void(0)" class="cancel-link" id="id_cancelOrderBtn">إلغاء الطلب</a>
+  </div>
+
+  <div class="top-stepper">
+    <div class="step-line active" id="s1"></div>
+    <div class="step-line" id="s2"></div>
+    <div class="step-line" id="s3"></div>
+  </div>
+
+  <div class="status-section">
+    <h1 id="id_orderStatusTitle">جارٍ التحميل...</h1>
+    <p class="timer-text" id="id_timerWrapper">يُرجى الدفع خلال <b id="id_countdownTimer">15:00</b></p>
+    <p id="id_expectWrapper" style="display: none; text-align: right; padding-right: 8px; font-size: 13px; margin-top: 8px; color: #5E6673;">
+      توقع استلام <b style="font-weight: 600; color: #1E2329;">USDT</b> من
+      <span id="id_expectTimer" style="color: #000; font-weight: 800;">03:00</span>
+      في حساب الفوري الخاص بك.
+    </p>
+  </div>
+
+  <div class="seller-card">
+    <div class="seller-info">
+      <img src="https://i.postimg.cc/k5KgcMrP/Screenshot-20260422-200530-Google.jpg" class="seller-avatar">
+      <p id="id_sellerDisplayName" style="font-weight: 700;">BSC Wallet</p>
+    </div>
+    <button class="glass-btn" id="id_chatWithSellerBtn" style="display: flex; align-items: center; gap: 6px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>الدردشة</span>
+    </button>
+  </div>
+
+  <div class="content-box" id="id_phase1">
+    <div class="timeline-item">
+      <div class="timeline-line"></div>
+      <div class="dot">1</div>
+      <div class="timeline-content">
+        <p style="font-weight: 800;">التحويل عبر: <span id="id_paymentMethodName">—</span> ⇄</p>
+        <div class="data-list" id="id_buyerPaymentList">
+          <div class="data-row" onclick="copyText('id_valAmount')"><span class="label">المبلغ المطلوب</span><div style="display:flex;gap:8px"><span class="val" id="id_valAmount">—</span><div class="copy-icon"></div></div></div>
+          <div class="data-row" onclick="copyText('id_valReceiver')"><span class="label">اسم المستلم</span><div style="display:flex;gap:8px"><span class="val" id="id_valReceiver">—</span><div class="copy-icon"></div></div></div>
+          <div class="data-row" onclick="copyText('id_valAddress')"><span class="label" id="id_valAddressLabel">العنوان</span><div style="display:flex;gap:8px"><span class="val" id="id_valAddress">—</span><div class="copy-icon"></div></div></div>
+          <div class="data-row" onclick="copyText('id_valReference')"><span class="label">الرسالة المرجعية</span><div style="display:flex;gap:8px"><span class="val" id="id_valReference">—</span><div class="copy-icon"></div></div></div>
+        </div>
+
+        <!-- Seller-only proof preview (shown when buyer uploads) -->
+        <div id="id_sellerProofPreview" class="proof-preview" style="display:none;">
+          <span class="label">إثبات الدفع المرسل من المشتري:</span>
+          <img id="id_sellerProofImg" src="" alt="Proof"/>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="dot">2</div>
+      <div class="timeline-content">
+        <p style="color: var(--gray); font-size: 14px; font-weight: 600;" id="id_step2Hint">ارفع إثبات الدفع ليتمكن الطرف المقابل من تحرير العملات.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="id_phase2" style="display: none;">
+    <div class="p2-card" style="padding-bottom: 10px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items: center;">
+        <div style="font-size:22px; font-weight:800;">
+          <span id="p2_type_text" class="type-buy">شراء</span>
+          <span style="color:var(--dark);">USDT</span>
+        </div>
+      </div>
+      <div class="p2-row"><span class="label">مبلغ العملة المحلية</span><span id="p2_display_amount" class="val">—</span></div>
+      <div class="p2-row"><span class="label">السعر</span><span id="p2_display_price" class="val">—</span></div>
+      <div class="p2-row"><span class="label">الكمية المستلمة</span><span id="p2_display_qty" class="val">—</span></div>
+      <div style="display: flex; justify-content: center; margin-top: 15px; border-top: 1.5px solid #1E2329; padding-top: 12px; opacity: 0.8;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="opacity: 0.2;">
+          <path d="M7 10L12 15L17 10" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div style="padding:0 5px; margin-top: 20px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+        <span class="label">وسيلة الدفع</span>
+        <span style="font-weight:700; font-size:14px;" id="p2_payment_method">—</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;" onclick="copyText('p2_display_ref')">
+        <span class="label">الرسالة المرجعية</span>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <div class="copy-icon"></div>
+          <span id="p2_display_ref" class="val" style="color:var(--gray); font-size:13px;">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn-main-footer" id="id_openUploadSheetBtn">جارٍ التحميل...</button>
+    <button id="id_waitingBtn" class="btn-main-footer btn-waiting" style="display: none; justify-content: center; align-items: center; gap: 8px; width: 100%; height: 55px; border: none; flex-direction: row !important;">
+      <span style="font-weight: 700;">تذكر الطرف المقابل</span>
+      <span id="id_threeMinTimer" style="font-size: 14px; font-weight: 800;">03:00</span>
+    </button>
+  </div>
+
+  <!-- Upload sheet (buyer) -->
+  <div class="overlay" id="id_mainOverlay"></div>
+  <div class="bottom-sheet" id="id_uploadBottomSheet">
+    <div class="handle"></div>
+    <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">تأكيد الدفع</h2>
+    <input type="file" id="id_hiddenFileInput" hidden accept="image/*">
+    <div class="upload-box" id="id_boxTriggerUpload" onclick="document.getElementById('id_hiddenFileInput').click()">
+      <span id="id_uploadPlaceholder" style="font-size: 26px; color: var(--gray);">+</span>
+      <span id="id_imageCountLabel" style="font-size: 12px; color: var(--gray);">0/3</span>
+    </div>
+    <div class="warning-sheet-box">
+      لا تقم بإجراء عمليات دفع إلى حساب خارجي، حيث أن ذلك قد يؤدي إلى تعليق الحساب. تأكد من مطابقة بيانات الدفع تماماً.
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="id_confirmCheckInput">
+      <label for="id_confirmCheckInput" style="font-size: 14px; font-weight: 600;">لقد قمت بعملية التحويل باستخدام حساب الدفع الخاص بي</label>
+    </div>
+    <button class="btn-notify-seller" id="id_submitPaymentBtn" disabled>تم التحويل، أخطر البائع</button>
+  </div>
+
+  <!-- Confirm sheet (seller) -->
+  <div class="overlay" id="confirmOverlay"></div>
+  <div class="bottom-sheet" id="confirmSheet">
+    <div class="sheet-content" style="padding: 20px;">
+      <h3 style="text-align: center; margin-bottom: 20px; font-weight: 800;">تأكيد استلام المبلغ</h3>
+      <div class="confirm-option" id="opt_received" onclick="selectOption('received')">
+        <p>لقد قمت بمراجعة حسابي البنكي وأؤكد استلام المبلغ بالكامل</p>
+      </div>
+      <div class="confirm-option" id="opt_not_received" onclick="selectOption('not_received')">
+        <p>لا، لم أستلم الدفعة بعد في حسابي</p>
+      </div>
+      <button id="id_confirmSelectionBtn" class="confirm-final-btn" disabled>تأكيد</button>
+    </div>
+  </div>
+
+  <!-- Chat overlay -->
+  <div class="overlay" id="id_chatOverlay" style="z-index:3000;"></div>
+  <div id="id_chatPanel">
+    <div class="chat-head">
+      <h3>الدردشة - <span id="id_chatOrderShort">—</span></h3>
+      <button class="chat-close" onclick="closeChatPanel()" aria-label="إغلاق">×</button>
+    </div>
+    <div id="id_chatMessages"></div>
+    <div class="chat-composer">
+      <input id="id_chatInput" type="text" placeholder="اكتب رسالة..." />
+      <button class="chat-send" onclick="sendChatMessage()">إرسال</button>
+    </div>
+  </div>
+
+  <!-- Firebase init + Maestro -->
+  <script src="firebase-config.js"></script>
+  <script src="order-details.js"></script>
+</body>
+</html>
